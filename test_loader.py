@@ -55,6 +55,10 @@ def truncate_to_fixed_length(seqs):
 
     return fixed_seqs
 
+#returns np array of nucleotide index integers
+def flatten(data):
+    return np.array([c for l in data for c in l], dtype=np.int32)
+
 #returns list of list of nucleotide ID integers
 def seq_to_nt_ids(seqs):
     nt_to_id = {k: v for v, k in enumerate(nt_vocab)}
@@ -76,4 +80,3 @@ fixed_seqs = pad_to_fixed_length(seqs)
 
 data = seq_to_nt_ids(fixed_seqs)
 #print(one_hot_encoding(data))
-#print(np.array([c for l in data for c in l], dtype=np.int32).shape)
