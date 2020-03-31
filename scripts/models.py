@@ -1,8 +1,8 @@
 import numpy as np
 import warnings
-from utility import *
 import pdb
 import os
+from utility import *
 import torch
 from torch import nn
 import copy
@@ -13,32 +13,53 @@ def clones(module, N):
 class DNN(nn.Module):
     def __init__(self, model_specs):
         super(DNN, self).__init__()
-        self.num_layers = 2
+        self.batch_size = model_specs['batch_size']
+
+        #number of hidden layers
+        self.num_layers = model_specs['n_hid_lyrs']
         self.non_linearity = nn.ReLU()
         self.nt_vocab_size = 17
-        self.input_size =
+        self.hidden_size = model_specs['HID1N']
+        self.out_size = model_specs['output_size']
+        self.seq_len = 10
 
+        #Embbed or one-hot?
+        self.embed = False
+
+        if self.embed:
+            self.emb_size = 5
+            self.embeddings = nn.Embedding(17, self.emb_size)
+        else:
+            #one-hot encodings are effectively an embedding to space of 17
+            self.emb_size = 17
 
         self.layers = nn.ModuleList()
         #first layer
-        self.layers.append(nn.Linear(model_specs['input_size'], model_specs['HID1N']))
+        self.layers.append(nn.Linear(self.emb_size*self.seq_len, self.hidden_size))
         #middle layers
-        self.layers.extend(clones(nn.Linear(model_specs['HID1N'], model_specs['HID1N']), self.num_layers-1))
+        self.layers.extend(clones(nn.Linear(self.hidden_size, self.hidden_size), self.num_layers-1))
         #output layers
-        self.layers.append(nn.Linear(model_specs['HID1N'], model_specs['output_size']))
+        self.out_layer = (nn.Linear(self.hidden_size, self.out_size))
         self.out_nl = nn.Softmax(dim=-1)
 
     def forward(self, x):
+        print(x.shape)
+        if self.embed:
+            input = self.embeddings(x)
+        else:
+            input = torch.Tensor(one_hot_encoding(x))
 
-
+        input = input.view(self.batch_size, self.seq_len * self.emb_size)
+        print(input.shape)
         for layer in range(self.num_layers):
-            # Calculate the hidden states
-            # And apply the activation function tanh on it
-            hidden[layer] = torch.tanh(self.layers[layer](torch.cat([input_, hidden[layer]], 1)))
-            # Apply dropout on this layer, but not for the recurrent units
-            input_ = self.dropout(hidden[layer])
-
-        return out
+            print(input.shape)
+            input = self.non_linearity(self.layers[layer](input))
+        print(input.shape)
+        input = self.out_layer(input)
+        print(input.shape)
+        input = self.out_nl(input)
+        print(input.shape)
+        return input
 
 class CNN(nn.Module):
     def __init__(self, model_specs):
