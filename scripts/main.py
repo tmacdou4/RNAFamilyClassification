@@ -106,7 +106,7 @@ def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0)
         for x,y in dataloader:
             x = Variable(x).to(device)
             y = Variable(y).to(device)
-            pdb.set_trace()
+            # pdb.set_trace()
             out = model(x)
             # pdb.set_trace()
             n += 1
@@ -140,7 +140,7 @@ for foldn in range(args.XVAL):
     test_dataset = Dataset({'data': np.array(TEST_X.T), 'labels':np.array(TEST_Y.numeral)})
     test_dl = DataLoader(test_dataset, batch_size = len(TEST_Y.index))
     # init model
-    model = DNN(model_specs).cuda(model_specs['device']) 
+    model = DNN(model_specs) #.cuda(model_specs['device']) 
     # train model
     print('trainig model...') 
     train(model, dl, test_dl, model_specs, device = model_specs['device'], foldn=foldn)
