@@ -7,7 +7,7 @@ import pdb
 import os
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader 
 
 warnings.filterwarnings("ignore")
 
@@ -34,6 +34,14 @@ seq_len = 200 # how to get this number efficiently ?
 RFs = ['RF00005', 'RF01852'] # tRNA might not be an easy task 
 # loading data into data frame
 data, labels = load_data_in_df(RFs, datapath = datapath, seq_len = seq_len)
+np.random.seed(args.SEED) # set numpy seed for data shuffle  
+numeric_labels = dict(zip(np.unique(labels[args.TARGET]), np.arange(len(np.unique(labels[args.TARGET])))))
+labels['numeral'] = [numeric_labels[l] for l in labels[args.TARGET]]
+torch.manual_seed(args.SEED) # set torch seed for model initialization 
+rnd_idxs = np.arange(labels.shape[0]) # get ids 
+np.random.shuffle(rnd_idxs)    # shuffles ids
+labels = labels.iloc[rnd_idxs] # shuffle labels
+data = data.iloc[rnd_idxs] # shuffle data
 
 # define model specs
 model_specs = {
@@ -54,7 +62,8 @@ model_specs = {
                 'HID2N': args.ARCH[1],
                 'lossfn': torch.nn.CrossEntropyLoss(),
                 'epochs': args.EPOCHS,
-                'levels' : np.unique(labels[args.TARGET])
+                'levels' : np.unique(labels[args.TARGET]),
+                'device' : 'cuda:0'
                 }
 
 # define model architecture 
@@ -90,7 +99,9 @@ assert_mkdir(models_path)
 assert_mkdir(trainlog_path)
 assert_mkdir(res_path)
 
-
+# define train function 
+def train (model, dl, test_dl, model_specs, device = 'cuda:0', foldn = 0):
+    pass 
 # foreach fold in xval
 for foldn in range(args.XVAL):
     # make training log outpath
@@ -106,11 +117,19 @@ for foldn in range(args.XVAL):
     TEST_Y = labels.loc[samples]
     TRAIN_X = data.loc[set(labels.index) - set(samples)]
     TRAIN_Y = labels.loc[set(labels.index) - set(samples)]
-    
-    # init reporter
+    # init dataset objects 
+    dataset = Dataset({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)})
+    dl = DataLoader(dataset, batch_size = model_specs['batch_size']) 
+    test_dataset = Dataset({'data': np.array(TEST_X.T), 'labels':np.array(TEST_Y.numeral)})
+    test_dl = DataLoader(test_dataset, batch_size = len(TEST_Y.index))
+    # init model
+    model = DNN(model_specs).cuda(model_specs['device']) 
+    # train model
+    print('trainig model...') 
+    train(model, dl, test_dl, model_specs, device = model_specs['device'], foldn=foldn)
+    pdb.set_trace()    
 
-    # train 
-        # report at each epoch
+    # report at each epoch
 
     # test
         # report/plot

@@ -85,6 +85,13 @@ def one_hot_encoding(data):
 # SOME TORCH CLASSES AND CUSTOM ONES
 #
 #
+class Dataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+    def __getitem__(self, idx):
+        return torch.FloatTensor(self.data['data'][idx]), torch.LongTensor(np.array(self.data['labels'][idx]))
+    def __len__(self):
+        return self.data['data'].shape[0]
 
 class BalancedDataPicker(Dataset):
         def __init__(self, data):
