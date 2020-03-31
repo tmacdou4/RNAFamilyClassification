@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import collections
+from scipy import stats
 filepath = 'data/'
 familypath = 'RF00005/'
 filename= 'fasta_unaligned.txt'
@@ -39,7 +40,7 @@ def pad_to_fixed_length(seqs, max_length = 100):
     for i, l in enumerate(seqs):
         fixed_seqs.append(l)
         for j in range(max_length-len(l)):
-            fixed_seqs[i] = fixed_seqs[i] + "-"
+            fixed_seqs[i] = fixed_seqs[i] + [6]
 
     return fixed_seqs
 
@@ -76,18 +77,55 @@ def one_hot_encoding(data):
 
     return one_hot_data
 
+#returns a list of nucleotide indexes for random sequences, matching the mean length and
+#composition of a given RFAM family
+def generate_based_on_family(RFAM_name):
+
+    #Do some statistics to match an RFAM family in sequence length and sequence composition
+    seqs = seq_loader("data/", RFAM_name, "fasta_unaligned.txt")
+    data = seq_to_nt_ids(seqs)
+
+    #match family in sequence length
+    lens = []
+    for seq in data:
+        lens.append(len(seq))
+    num_seq = len(lens)
+    lens = np.array(lens)
+    len_mean = np.mean(lens)
+    len_std = np.std(lens)
+
+    #match family in sequence composition
+    nt_probs = np.zeros(17)
+    for l in data:
+        for c in l:
+            nt_probs[c] += 1
+
+    scaling_factor = 1.0/sum(nt_probs)
+    nt_probs = nt_probs*scaling_factor
+
+    pmf = stats.rv_discrete(values=(list(range(17)), nt_probs))
+
+    #actual random part
+    lengths = np.random.normal(loc=len_mean, scale=len_std, size=num_seq)
+    lengths = [int(x) for x in list(lengths)]
+
+    rand_seqs = []
+    for i in range(len(lengths)):
+        rand_seqs.append(list(pmf.rvs(size=lengths[i])))
+
+    return rand_seqs
 
 # loading data into data frame
-def load_data_in_df(RFs, datapath = 'data',seq_len = 500):
+def load_data_in_df(RFs, datapath = 'data/',seq_len = 500):
     data = []
     labels = []
     seeds = []
     for RF in RFs:            
-        seqs = seq_loader(datapath,RF, 'fasta_unaligned.txt')
-        fixed_seqs = pad_to_fixed_length(seqs, max_length = seq_len) # fix the max manually ? to be fixed
-        seqs_onehot = seq_to_nt_ids(fixed_seqs)
-        data.append(seqs_onehot)
-        labels.append([RF for i in range(len(seqs_onehot))])
+        seqs = seq_loader(datapath, RF, 'fasta_unaligned.txt')
+        seqs_index = seq_to_nt_ids(seqs)
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length = seq_len) # fix the max manually ? to be fixed
+        data.append(fixed_seqs)
+        labels.append([RF for i in range(len(fixed_seqs))])
         seeds.append(seqs)
     seeds = np.concatenate(seeds)
     data = np.concatenate(data)    
@@ -97,7 +135,8 @@ def load_data_in_df(RFs, datapath = 'data',seq_len = 500):
     return data_df, labels_df
 
 seqs = seq_loader(filepath, familypath, filename)
-fixed_seqs = pad_to_fixed_length(seqs)
+indexes = seq_to_nt_ids(seqs)
+indexes = generate_based_on_family("RF00005")
+data = pad_to_fixed_length(indexes)
 
-data = seq_to_nt_ids(fixed_seqs)
-#print(one_hot_encoding(data))
+
