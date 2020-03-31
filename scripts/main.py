@@ -5,6 +5,8 @@ from utility import *
 import pdb
 import os
 import torch
+from torch import nn
+from torch.utils.data import Dataset, DataLoader
 
 # stats
 seq_len = 200 # how to get this number efficiently ?
@@ -54,9 +56,9 @@ model_specs = {
                 }
 
 # define model architecture 
-class Model2H(nn.Module):
+class DNN(nn.Module):
         def __init__(self,model_specs):
-                super(Model2H, self).__init__()
+                super(DNN, self).__init__()
                 self.in_h1 = nn.Linear(model_specs['input_size'], model_specs['HID1N'])
                 self.h1_nl = nn.Hardtanh()
                 self.h1_h2 = nn.Linear(model_specs['HID1N'], model_specs['HID2N'])
@@ -88,12 +90,23 @@ assert_mkdir(res_path)
 
 TRAINING_outpath = os.path.join('TRAINING', args.LABEL, args.INPUT_GENES)
 for foldn in xrange(args.XVAL):
-    assert_mkdir(os.path.join(TRAINING_outpath, str(foldn).zfill(3)))
 
 # foreach fold in xval
-
+for foldn in range(args.XVAL):
+    # make training log outpath
+    assert_mkdir(os.path.join(trainlog_path, str(foldn).zfill(3)))
+    # store some static values 
+    nsamples = model_specs['nsamples']
+    test_size = model_specs['test_size']
     # split train and test
-
+    # prepare data splitting    
+    samples = labels.index[foldn * test_size: min((foldn + 1) * test_size, nsamples)]
+    pdb.set_trace()
+    TRAIN_X = data.loc[:, set(labels.index) - set(samples)]
+    TRAIN_Y = labels.loc[set(labels.index) - set(samples),:
+    TEST_X = data.loc[:,samples]
+    TEST_Y = labels.loc[samples,:]
+    
     # init model
 
     # init reporter

@@ -3,6 +3,10 @@ import pandas as pd
 import numpy as np
 import collections
 from scipy import stats
+import torch 
+from torch import nn
+from torch.utils.data import Dataset, DataLoader
+
 filepath = 'data/'
 familypath = 'RF00005/'
 filename= 'fasta_unaligned.txt'
@@ -76,6 +80,25 @@ def one_hot_encoding(data):
             one_hot_data[i][j][index] = 1
 
     return one_hot_data
+#
+#
+# SOME TORCH CLASSES AND CUSTOM ONES
+#
+#
+
+class BalancedDataPicker(Dataset):
+        def __init__(self, data):
+            self.data = data
+            self.size = self.data['data'].shape[0]
+        def __getitem__(self, idx):
+            # first pick a class at random
+            classe = np.random.choice(np.unique(self.data['labels']))
+            # then pick a sample in that class 
+            idx = np.random.choice(np.where(self.data['labels'] == classe)[0])
+            # then return x,y tuple for this index
+            return torch.FloatTensor(self.data['data'][idx]), torch.LongTensor(np.array(self.data['labels'][idx])) 
+        def __len__(self):
+            return self.size
 
 # assert mkdir 
 def assert_mkdir(path):
