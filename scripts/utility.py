@@ -68,9 +68,9 @@ def seq_to_nt_ids(seqs):
     nt_to_id = {k: v for v, k in enumerate(nt_vocab)}
     return [[nt_to_id[c] for c in l] for l in seqs]
 
-#returns 3D numpy array of index ints
+#returns 3D torch tensor of index ints
 def one_hot_encoding(data):
-    one_hot_data = np.zeros(shape=(data.shape[0], data.shape[1], len(nt_vocab)))
+    one_hot_data = torch.zeros(data.shape[0], data.shape[1], len(nt_vocab))
     for i in range(one_hot_data.shape[0]):
         for j in range(one_hot_data.shape[1]):
             one_hot_data[i][j][int(data[i][j])] = 1

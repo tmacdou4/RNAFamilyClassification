@@ -47,7 +47,7 @@ class DNN(nn.Module):
         if self.embed:
             input = self.embeddings(x)
         else:
-            input = torch.Tensor(one_hot_encoding(x))
+            input = one_hot_encoding(x)
 
         input = input.view(self.batch_size, self.seq_len * self.emb_size)
         print(input.shape)
