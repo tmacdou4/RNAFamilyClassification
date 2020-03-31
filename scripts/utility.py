@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-filepath = 'data/'
+filepath = '../data/'
 familypath = 'RF00005/'
 filename= 'fasta_unaligned.txt'
 
@@ -34,50 +34,46 @@ def non_std_char(seqs):
                 chars.add(c)
     return chars
 
-#returns a list of strings, padded
+#returns 2D numpy array of index ints
 def pad_to_fixed_length(seqs, max_length = 100):
     for l in seqs:
         if len(l) > max_length:
             max_length = len(l)
 
-    fixed_seqs = []
-    for i, l in enumerate(seqs):
-        fixed_seqs.append(l)
-        for j in range(max_length-len(l)):
-            fixed_seqs[i] = fixed_seqs[i] + [6]
+    fixed_seqs = np.zeros(shape=(len(seqs), max_length))
+    for i in range(len(seqs)):
+        for j in range(len(seqs[i])):
+            fixed_seqs[i][j] = seqs[i][j]
+
+        for j in range(len(seqs[i]), (max_length-len(seqs[i]))+len(seqs[i]), 1):
+            fixed_seqs[i][j] = 6
 
     return fixed_seqs
 
-#returns a list of strings, truncated
+#returns 2D numpy array of index ints
 def truncate_to_fixed_length(seqs):
     min_length = 100000
-    for l in seqs:
-        if len(l) < min_length:
-            min_length = len(l)
+    for i in range(len(seqs)):
+        if len(seqs[i]) < min_length:
+            min_length = len(seqs[i])
 
-    fixed_seqs = []
-    for l in seqs:
-        fixed_seqs.append(l[:min_length])
+    fixed_seqs = np.zeros(shape=(len(seqs), min_length))
+    for i in range(len(seqs)):
+        fixed_seqs[i] = seqs[i][:min_length]
 
     return fixed_seqs
-
-#returns np array of nucleotide index integers
-def flatten(data):
-    return np.array([c for l in data for c in l], dtype=np.int32)
 
 #returns list of list of nucleotide ID integers
 def seq_to_nt_ids(seqs):
     nt_to_id = {k: v for v, k in enumerate(nt_vocab)}
     return [[nt_to_id[c] for c in l] for l in seqs]
 
-#returns a list of list of one-hot encoded numpy vectors
+#returns 3D numpy array of index ints
 def one_hot_encoding(data):
-    one_hot_data = []
-    for i, l in enumerate(data):
-        one_hot_data.append([])
-        for j, index in enumerate(l):
-            one_hot_data[i].append(np.zeros(len(nt_vocab)))
-            one_hot_data[i][j][index] = 1
+    one_hot_data = np.zeros(shape=(data.shape[0], data.shape[1], len(nt_vocab)))
+    for i in range(one_hot_data.shape[0]):
+        for j in range(one_hot_data.shape[1]):
+            one_hot_data[i][j][int(data[i][j])] = 1
 
     return one_hot_data
 #
@@ -122,10 +118,10 @@ def assert_mkdir(path):
         currdir = os.path.join(str(currdir), str(dir))
 
 #composition of a given RFAM family
-def generate_based_on_family(RFAM_name):
+def generate_based_on_family(RFAM_name, datapath = "../data"):
 
     #Do some statistics to match an RFAM family in sequence length and sequence composition
-    seqs = seq_loader("data/", RFAM_name, "fasta_unaligned.txt")
+    seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
     data = seq_to_nt_ids(seqs)
 
     #match family in sequence length
@@ -159,7 +155,7 @@ def generate_based_on_family(RFAM_name):
     return rand_seqs
 
 # loading data into data frame
-def load_data_in_df(RFs, datapath = 'data/',seq_len = 500):
+def load_data_in_df(RFs, datapath = "../data" ,seq_len = 500):
     data = []
     labels = []
     seeds = []
@@ -179,7 +175,9 @@ def load_data_in_df(RFs, datapath = 'data/',seq_len = 500):
 
 seqs = seq_loader(filepath, familypath, filename)
 indexes = seq_to_nt_ids(seqs)
-indexes = generate_based_on_family("RF00005")
+#indexes = generate_based_on_family("RF00005")
 data = pad_to_fixed_length(indexes)
+#data = one_hot_encoding(data)
+print(data.shape)
 
 
