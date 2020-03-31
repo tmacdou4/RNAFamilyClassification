@@ -173,11 +173,5 @@ def load_data_in_df(RFs, datapath = "../data" ,seq_len = 500):
     labels_df = pd.DataFrame({'RFAM': labels}, index = seeds)
     return data_df, labels_df
 
-seqs = seq_loader(filepath, familypath, filename)
-indexes = seq_to_nt_ids(seqs)
-#indexes = generate_based_on_family("RF00005")
-data = pad_to_fixed_length(indexes)
-#data = one_hot_encoding(data)
-print(data.shape)
 
 

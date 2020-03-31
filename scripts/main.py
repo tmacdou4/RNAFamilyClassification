@@ -3,6 +3,7 @@ import numpy as np
 import warnings
 import argparse
 from utility import *
+from  models import *
 import pdb
 import os
 import torch
@@ -67,25 +68,6 @@ model_specs = {
                 'device' : 'cuda:0'
                 }
 
-# define model architecture 
-class DNN(nn.Module):
-        def __init__(self,model_specs):
-                super(DNN, self).__init__()
-                self.in_h1 = nn.Linear(model_specs['input_size'], model_specs['HID1N'])
-                self.h1_nl = nn.Hardtanh()
-                self.h1_h2 = nn.Linear(model_specs['HID1N'], model_specs['HID2N'])
-                self.h2_nl = nn.Hardtanh()
-                self.h2_out = nn.Linear(model_specs['HID2N'], model_specs['output_size'])
-                self.out_nl = nn.Softmax(dim=-1)
-        def forward(self, x):
-            out = self.in_h1(x)
-            out = self.h1_nl(out)
-            out = self.h1_h2(out)
-            out = self.h2_nl(out)
-            out = self.h2_out(out)
-            out = self.out_nl(out)
-            return out 
-
 # init file tree for reporters
 # prepare_outfile_paths
 target_path = os.path.join(modelname, args.TARGET)
@@ -123,7 +105,7 @@ def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0)
         for x,y in dataloader:
             x = Variable(x).to(device)
             y = Variable(y).to(device)
-            # pdb.set_trace()
+            pdb.set_trace()
             out = model(x)
             # pdb.set_trace()
             n += 1
