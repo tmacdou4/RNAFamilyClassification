@@ -21,8 +21,8 @@ class DNN(nn.Module):
         self.nt_vocab_size = 17
         self.hidden_size = model_specs['HID1N']
         self.out_size = model_specs['output_size']
-        self.seq_len = 10
 
+        self.seq_len = model_specs['seq_len'] # this is eq to input size !
         #Embbed or one-hot?
         self.embed = False
 
