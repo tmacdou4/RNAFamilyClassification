@@ -43,6 +43,12 @@ class DNN(nn.Module):
         self.out_nl = nn.Softmax(dim=-1)
 
     def forward(self, x):
+
+        if x.is_cuda:
+            device = x.get_device()
+        else:
+            device = torch.device("cpu")
+
         if self.embed:
             input = self.embeddings(x)
         else:
