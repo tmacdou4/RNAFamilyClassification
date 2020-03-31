@@ -8,6 +8,7 @@ import os
 import torch
 from torch import nn
 from torch.utils.data import DataLoader 
+from torch.autograd import Variable
 
 warnings.filterwarnings("ignore")
 
@@ -100,8 +101,41 @@ assert_mkdir(trainlog_path)
 assert_mkdir(res_path)
 
 # define train function 
-def train (model, dl, test_dl, model_specs, device = 'cuda:0', foldn = 0):
-    pass 
+def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0):
+    epochs = model_specs['epochs']
+    wd = model_specs['wd']
+    lr = model_specs['lr']
+    loss = torch.nn.NLLLoss() if model_specs['lossfn'] == 'NLL' else torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = wd)
+    # levels_sorted_by_index = sorted([(index, c) for (c, index) in model_specs['levels'].items()])
+    # levels = [str(c)[:10] for (ind, c) in levels_sorted_by_index]
+    frame_nb = 0
+    for i  in xrange(epochs):
+        n = 0
+        l = 0
+        a = 0
+        m = 0 
+        auc = 0
+        TP, FN, FP, TN = 0,0,0,0
+        # CM = np.zeros((model_specs['output_size'], model_specs['output_size']))
+        # fig = plt.figure(figsize= (10,10))
+        # fig.add_subplot(111, projection = '3d')
+        for x,y in dataloader:
+            x = Variable(x).to(device)
+            y = Variable(y).to(device)
+            # pdb.set_trace()
+            out = model(x)
+            # pdb.set_trace()
+            n += 1
+            a += acc.mean().detach().cpu().numpy()
+            l += float(loss_val.mean())
+            optimizer.zero_grad()
+            loss_val.mean().backward()
+            optimizer.step()
+            training_reporter = 'FOLD {}\tTRAIN ['.format(str(fold).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] {} % '.format(i+1, epochs, round(a / n, 4) * 100)
+            # os.system('echo {} > {}'.format(training_reporter,output_fpath))
+            print(training_reporter)
+
 # foreach fold in xval
 for foldn in range(args.XVAL):
     # make training log outpath
