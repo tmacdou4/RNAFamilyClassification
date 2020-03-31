@@ -43,22 +43,16 @@ class DNN(nn.Module):
         self.out_nl = nn.Softmax(dim=-1)
 
     def forward(self, x):
-        print(x.shape)
         if self.embed:
             input = self.embeddings(x)
         else:
             input = one_hot_encoding(x)
 
         input = input.view(self.batch_size, self.seq_len * self.emb_size)
-        print(input.shape)
         for layer in range(self.num_layers):
-            print(input.shape)
             input = self.non_linearity(self.layers[layer](input))
-        print(input.shape)
         input = self.out_layer(input)
-        print(input.shape)
         input = self.out_nl(input)
-        print(input.shape)
         return input
 
 class CNN(nn.Module):
