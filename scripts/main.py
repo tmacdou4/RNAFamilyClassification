@@ -8,6 +8,7 @@ import pdb
 import os
 import torch
 from torch import nn
+from sklearn import metrics
 from torch.utils.data import DataLoader 
 from torch.autograd import Variable
 
@@ -100,6 +101,7 @@ def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0)
         m = 0 
         auc = 0
         TP, FN, FP, TN = 0,0,0,0
+        mcc = 0
         # CM = np.zeros((model_specs['output_size'], model_specs['output_size']))
         # fig = plt.figure(figsize= (10,10))
         # fig.add_subplot(111, projection = '3d')
@@ -114,12 +116,14 @@ def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0)
             acc = torch.eq(out.argmax(dim = -1), y).float().view(-1,1)     
             a += float(acc.mean().detach().cpu().numpy())
             l += float(loss_val.mean())
+            tn, fp, fn, tp = metrics.confusion_matrix(y, out.argmax(dim=-1).detach().cpu().numpy(), labels = np.arange(2, dtype=int)).ravel() 
             optimizer.zero_grad()
             loss_val.mean().backward()
             optimizer.step()
             training_reporter = 'FOLD {}\tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] {} % '.format(i+1, epochs, round(a / n, 4) * 100)
+            CM_reporter = 'TP {}, TN {}, FP {} , FN {}, MCC : {}'.format(tp, tn, fp, fn, mcc)
             # os.system('echo {} > {}'.format(training_reporter,output_fpath))
-            print(training_reporter)
+            print(training_reporter + CM_reporter)
 
 # foreach fold in xval
 for foldn in range(args.XVAL):
@@ -137,7 +141,8 @@ for foldn in range(args.XVAL):
     TRAIN_X = data.loc[set(labels.index) - set(samples)]
     TRAIN_Y = labels.loc[set(labels.index) - set(samples)]
     # init dataset objects 
-    dataset = Dataset({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)})
+    # dataset = Dataset({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)})
+    dataset  = BalancedDataPicker({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)}) 
     dl = DataLoader(dataset, batch_size = model_specs['batch_size']) 
     test_dataset = Dataset({'data': np.array(TEST_X.T), 'labels':np.array(TEST_Y.numeral)})
     test_dl = DataLoader(test_dataset, batch_size = len(TEST_Y.index))

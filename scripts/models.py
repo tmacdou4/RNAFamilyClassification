@@ -53,8 +53,7 @@ class DNN(nn.Module):
             input = self.embeddings(x)
         else:
             input = one_hot_encoding(x)
-
-        input = input.view(self.batch_size, self.seq_len * self.emb_size)
+        input = input.view(input.shape[0], self.seq_len * self.emb_size)
         for layer in range(self.num_layers):
             input = self.non_linearity(self.layers[layer](input))
         input = self.out_layer(input)
