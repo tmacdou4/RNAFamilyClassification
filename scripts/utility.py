@@ -77,7 +77,20 @@ def one_hot_encoding(data):
 
     return one_hot_data
 
-#returns a list of nucleotide indexes for random sequences, matching the mean length and
+# assert mkdir 
+def assert_mkdir(path):
+    """
+    FUN that takes a path as input and checks if it exists, then if not, will recursively make the directories to complete the path
+    """
+        
+    currdir = ''
+    for dir in path.split('/'):
+        dir = dir.replace('-','').replace(' ', '').replace('/', '_') 
+        if not os.path.exists(os.path.join(currdir, dir)):
+            os.mkdir(os.path.join(currdir, dir))
+            print(os.path.join(currdir, dir), ' has been created')
+        currdir = os.path.join(str(currdir), str(dir))
+
 #composition of a given RFAM family
 def generate_based_on_family(RFAM_name):
 
