@@ -124,6 +124,7 @@ def train (model, dataloader, vld_dl, model_specs, device = 'cuda:0', foldn = 0)
             CM_reporter = 'TP {}, TN {}, FP {} , FN {}, MCC : {}'.format(tp, tn, fp, fn, mcc)
             # os.system('echo {} > {}'.format(training_reporter,output_fpath))
             print(training_reporter + CM_reporter)
+            return {'training': training_reporter, 'CM': CM_reporter}
 
 # foreach fold in xval
 for foldn in range(args.XVAL):
@@ -150,7 +151,8 @@ for foldn in range(args.XVAL):
     model = DNN(model_specs) #.cuda(model_specs['device']) 
     # train model
     print('trainig model...') 
-    train(model, dl, test_dl, model_specs, device = model_specs['device'], foldn=foldn)
+    reporters = train(model, dl, test_dl, model_specs, device = model_specs['device'], foldn=foldn)
+    reporters['training']
     pdb.set_trace()    
 
     # report at each epoch
