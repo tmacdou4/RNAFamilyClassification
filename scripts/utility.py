@@ -155,22 +155,22 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
     return rand_seqs
 
 # loading data into data frame
-def load_data_in_df(RFs, datapath = "../data" ,seq_len = 500):
+def load_data_in_df(RFs, datapath = "../data" ,max_len = 500):
     data = []
     labels = []
     seeds = []
     for RF in RFs:            
         seqs = seq_loader(datapath, RF, 'fasta_unaligned.txt')
         seqs_index = seq_to_nt_ids(seqs)
-        fixed_seqs = pad_to_fixed_length(seqs_index, max_length = seq_len) # fix the max manually ? to be fixed
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
         data.append(fixed_seqs)
         labels.append([RF for i in range(len(fixed_seqs))])
         seeds.append(seqs)
     seeds = np.concatenate(seeds)
     data = np.concatenate(data)    
     labels  = np.concatenate(labels)
-    data_df = pd.DataFrame(data, index = seeds)
-    labels_df = pd.DataFrame({'RFAM': labels}, index = seeds)
+    data_df = pd.DataFrame(data)
+    labels_df = pd.DataFrame({'RFAM': labels, 'seed': seeds})
     return data_df, labels_df
 
 
