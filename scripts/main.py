@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 import argparse
 from utility import *
-from  models import *
+from models import *
 import pdb
 import os
 import torch
@@ -11,6 +11,13 @@ from torch import nn
 from sklearn import metrics
 from torch.utils.data import DataLoader 
 from torch.autograd import Variable
+
+try:
+    # Python 2
+    xrange
+except NameError:
+    # Python 3
+    xrange = range
 
 warnings.filterwarnings("ignore")
 
