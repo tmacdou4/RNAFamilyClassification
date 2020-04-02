@@ -99,7 +99,7 @@ class BalancedDataPicker(Dataset):
             # then pick a sample in that class 
             idx = np.random.choice(np.where(self.data['labels'] == classe)[0])
             # then return x,y tuple for this index
-            return torch.FloatTensor(self.data['data'][idx]), torch.LongTensor(np.array(self.data['labels'][idx])) 
+            return torch.FloatTensor(self.data['data'][idx]), torch.FloatTensor(np.array(self.data['labels'][idx])) 
         def __len__(self):
             return self.size
 
