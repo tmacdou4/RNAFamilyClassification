@@ -13,6 +13,25 @@ def clones(module, N):
 def conv_layer_size(l_in, k, stride, padding=0, dilation=1):
     return int(((l_in + (2*padding) - (dilation*(k-1)) - 1)/stride)+1)
 
+# returns 3D torch tensor of index ints
+class One_Hot_Encoding(nn.Module):
+    def __init__(self, nt_vocab_size):
+        super(One_Hot_Encoding, self).__init__()
+        self.nt_vocab_size = nt_vocab_size
+
+    def forward(self, input):
+
+        if input.is_cuda:
+            device = input.get_device()
+        else:
+            device = torch.device("cpu")
+        one_hot_data = torch.zeros(input.shape[0], input.shape[1], self.nt_vocab_size).to(device)
+        for i in range(one_hot_data.shape[0]):
+            for j in range(one_hot_data.shape[1]):
+                one_hot_data[i][j][int(input[i][j])] = 1
+
+        return one_hot_data
+
 class DNN(nn.Module):
     def __init__(self, model_specs):
         super(DNN, self).__init__()
@@ -35,6 +54,7 @@ class DNN(nn.Module):
         else:
             #one-hot encodings are effectively an embedding to space of 17
             self.emb_size = 17
+            self.embeddings = One_Hot_Encoding(17)
 
         self.layers = nn.ModuleList()
         #first layer
@@ -45,17 +65,16 @@ class DNN(nn.Module):
         self.out_layer = (nn.Linear(self.hidden_size, self.out_size))
         self.out_nl = nn.Softmax(dim=-1)
 
-    def forward(self, x):
+    def forward(self, input):
 
-        if x.is_cuda:
-            device = x.get_device()
+        if input.is_cuda:
+            device = input.get_device()
         else:
             device = torch.device("cpu")
 
-        if self.embed:
-            input = self.embeddings(x)
-        else:
-            input = one_hot_encoding(x)
+        input = input.long()
+        input = self.embeddings(input)
+
         input = input.view(input.shape[0], self.seq_len * self.emb_size)
         for layer in range(self.num_layers):
             input = self.non_linearity(self.layers[layer](input))
@@ -104,33 +123,24 @@ class CNN(nn.Module):
         else:
             device = torch.device("cpu")
 
-        print(input.shape)
 
         if self.embed:
             input = self.embeddings(input)
         else:
             input = one_hot_encoding(input)
 
-        print(input.shape)
 
         #input received as (batch_size x sequence_len x embedding_size)
         input = input.transpose(-2, -1)
         #input now (batch_size x embedding size x seq_len)
 
-        print(input.shape)
 
         input = self.conv1(input)
-
-        print(input.shape)
 
         input = self.non_linearity(input)
         input = self.pool1(input)
 
-        print(input.shape)
-
         input = input.view(self.batch_size, -1)
-
-        print(input.shape)
 
         input = self.fc(input)
         input = self.non_linearity(input)
