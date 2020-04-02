@@ -133,7 +133,7 @@ for foldn in range(1 , args.XVAL + 1):
     dataset  = BalancedDataPicker({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)[np.newaxis].T }) 
     dl = DataLoader(dataset, batch_size = model_specs['batch_size']) 
     # init model
-    model = DNN(model_specs) #.cuda(model_specs['device']) 
+    model = DNN(model_specs).cuda(model_specs['device'])
     # train model
     print('training model...')
     # time stamp
