@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser()
 # parse arguments 
 parser.add_argument('-arch', dest = 'ARCH', default = [100, 200], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
-parser.add_argument('-epochs',dest = 'EPOCHS', default = 2, type = int, help = 'nb of max epochs')
+parser.add_argument('-epochs',dest = 'EPOCHS', default = 3, type = int, help = 'nb of max epochs')
 parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, help = 'L2 parametrization [0:no regularization]')
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
 parser.add_argument('-t', dest = 'TARGET', default = 'RF01852', type = str, help = 'name of label to train on') 
@@ -32,7 +32,7 @@ modelname = 'DNN'
 ARCH = args.ARCH
 # static values 
 vs = 'REST'
-bs = 256
+bs = 128
 seq_len = 600 # how to get the optimal number efficiently ?
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
@@ -53,7 +53,7 @@ data = data.iloc[rnd_idxs] # shuffle data
 nseeds = labels.shape[0]
 test_size = int(float(labels.shape[0]) / args.XVAL)
 train_size = nseeds - test_size
-gr_steps = int(float(train_size / bs ))
+gr_steps = int(float(train_size) / bs) + 1
 # define model specs
 model_specs = {
                 'xval' : args.XVAL, 
