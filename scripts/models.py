@@ -10,6 +10,9 @@ import copy
 def clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
+def conv_layer_size(l_in, k, stride, padding=0, dilation=1):
+    return int(((l_in + (2*padding) - (dilation*(k-1)) - 1)/stride)+1)
+
 class DNN(nn.Module):
     def __init__(self, model_specs):
         super(DNN, self).__init__()
@@ -63,10 +66,166 @@ class DNN(nn.Module):
 class CNN(nn.Module):
     def __init__(self, model_specs):
         super(CNN, self).__init__()
-        pass
+        self.batch_size = model_specs['batch_size']
+        self.nt_vocab_size = 17
+        self.out_size = model_specs['output_size']
+        self.seq_len = model_specs['seq_len']  # this is eq to input size !
+        self.embed = False # Embed or one-hot?
 
-    def forward(self, x):
-        pass
+        if self.embed:
+            self.emb_size = 5
+            self.embeddings = nn.Embedding(17, self.emb_size)
+        else:
+            # one-hot encodings are effectively an embedding to space of 17
+            self.emb_size = 17
+
+        #convolutional architecture details
+        #1 convolutional layer
+        self.num_k = 128
+        self.k_size = 22
+        self.m_p_size_1 = 100
+        self.non_linearity = nn.ReLU()
+        self.fc_hidden_size = 500
+
+        self.conv1 = nn.Conv1d(self.emb_size, self.num_k, self.k_size, stride=2)
+        self.pool1 = nn.MaxPool1d(self.m_p_size_1, stride=4)
+
+        len_conv = conv_layer_size(self.seq_len, self.k_size, 2)
+        len_pool = conv_layer_size(len_conv, self.m_p_size_1, 4)
+
+        self.fc = nn.Linear((self.num_k * len_pool), self.fc_hidden_size)
+        self.out_layer = nn.Linear(self.fc_hidden_size, self.out_size)
+        self.out_nl = nn.Softmax(dim=-1)
+
+    def forward(self, input):
+
+        if input.is_cuda:
+            device = input.get_device()
+        else:
+            device = torch.device("cpu")
+
+        print(input.shape)
+
+        if self.embed:
+            input = self.embeddings(input)
+        else:
+            input = one_hot_encoding(input)
+
+        print(input.shape)
+
+        #input received as (batch_size x sequence_len x embedding_size)
+        input = input.transpose(-2, -1)
+        #input now (batch_size x embedding size x seq_len)
+
+        print(input.shape)
+
+        input = self.conv1(input)
+
+        print(input.shape)
+
+        input = self.non_linearity(input)
+        input = self.pool1(input)
+
+        print(input.shape)
+
+        input = input.view(self.batch_size, -1)
+
+        print(input.shape)
+
+        input = self.fc(input)
+        input = self.non_linearity(input)
+        input = self.out_layer(input)
+        input = self.out_nl(input)
+        return input
+
+class CNN_2L(nn.Module):
+    def __init__(self, model_specs):
+        super(CNN_2L, self).__init__()
+        self.batch_size = model_specs['batch_size']
+        self.nt_vocab_size = 17
+        self.out_size = model_specs['output_size']
+        self.seq_len = model_specs['seq_len']  # this is eq to input size !
+        self.embed = False # Embed or one-hot?
+
+        if self.embed:
+            self.emb_size = 5
+            self.embeddings = nn.Embedding(17, self.emb_size)
+        else:
+            # one-hot encodings are effectively an embedding to space of 17
+            self.emb_size = 17
+
+        #convolutional architecture details
+        #2 convolutional layer
+        self.num_k_1 = 128
+        self.k_size_1 = 22
+        self.m_p_size_1 = 101
+        self.num_k_2 = 256
+        self.k_size_2 = 22
+        self.m_p_size_2 = 10
+
+        self.non_linearity = nn.ReLU()
+
+        self.conv1 = nn.Conv1d(self.emb_size, self.num_k_1, self.k_size_1, stride=2)
+        self.pool1 = nn.MaxPool1d(self.m_p_size_1, stride=1)
+        self.conv2 = nn.Conv1d(self.num_k_1, self.num_k_2, self.k_size_2, stride=2)
+        self.pool2 = nn.MaxPool1d(self.m_p_size_2, stride=1)
+
+        #Calculate the final layer size
+        len_conv_1 = conv_layer_size(self.seq_len, self.k_size_1, 2)
+        len_pool_1 = conv_layer_size(len_conv_1, self.m_p_size_1, 1)
+        len_conv_2 = conv_layer_size(len_pool_1, self.k_size_2, 2)
+        len_pool_2 = conv_layer_size(len_conv_2, self.m_p_size_2, 1)
+
+        self.out_layer = nn.Linear((self.num_k_2 * len_pool_2), self.out_size)
+        self.out_nl = nn.Softmax(dim=-1)
+
+    def forward(self, input):
+
+        if input.is_cuda:
+            device = input.get_device()
+        else:
+            device = torch.device("cpu")
+
+        print(input.shape)
+
+        if self.embed:
+            input = self.embeddings(input)
+        else:
+            input = one_hot_encoding(input)
+
+        print(input.shape)
+
+        #input received as (batch_size x sequence_len x embedding_size)
+        input = input.transpose(-2, -1)
+        #input now (batch_size x embedding size x seq_len)
+
+        print(input.shape)
+
+        input = self.conv1(input)
+
+        print(input.shape)
+
+        input = self.non_linearity(input)
+        input = self.pool1(input)
+
+        print(input.shape)
+
+        input = self.conv2(input)
+
+        print(input.shape)
+
+        input = self.non_linearity(input)
+        input = self.pool2(input)
+
+        print(input.shape)
+
+        input = input.view(self.batch_size, -1)
+
+        print(input.shape)
+
+        input = self.out_layer(input)
+        input = self.out_nl(input)
+        return input
 
 class RNN(nn.Module):
     def __init__(self, model_specs):
