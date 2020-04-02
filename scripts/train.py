@@ -13,7 +13,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
     # levels_sorted_by_index = sorted([(index, c) for (c, index) in model_specs['levels'].items()])
     # levels = [str(c)[:10] for (ind, c) in levels_sorted_by_index]
     frame_nb = 0
-    for i  in xrange(epochs):
+    for i  in range(epochs):
         n = 0
         l = 0
         a = 0

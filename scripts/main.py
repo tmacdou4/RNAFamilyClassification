@@ -12,13 +12,6 @@ from collections import defaultdict
 from torch import nn
 from torch.utils.data import DataLoader 
 
-try:
-    # Python 2
-    xrange
-except NameError:
-    # Python 3
-    xrange = range
-
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
@@ -142,7 +135,7 @@ for foldn in range(1 , args.XVAL + 1):
     # init model
     model = DNN(model_specs) #.cuda(model_specs['device']) 
     # train model
-    print('trainig model...')
+    print('training model...')
     # time stamp
     startime = time.clock()
     train(model, dl,  model_specs, device = model_specs['device'], foldn=foldn)
