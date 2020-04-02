@@ -1,6 +1,9 @@
 # RNAFamilyClassification
 Classification of RNA Sequences Into Families Directly From Sequence Using Deep Learning Methods
 
+Environment setup using conda:
+
+    conda create -y -n RNAClassification python=3.7 scipy pandas scikit-learn pytorch torchvision cudatoolkit=10.1 -c pytorch
 II - Timeline and Project Steps: 
 This is a preliminary timeline and timestamps that will be used to guide us during the project. 
 We are keeping in mind that some of the experiments will be conducted at the same time in parallel. 
@@ -12,7 +15,6 @@ Going forward:
 Establishing a classification baseline using D-ORB for various non-coding RNA families ~2 days LS 
 
 Implementation and optimization of models (in order of complexity), each requiring in-depth hyperparameter and architecture optimization. ~12 days
-
     DNN ~2 days LS
     RNN ~2 days TOM
     CNN ~4 days LS 
