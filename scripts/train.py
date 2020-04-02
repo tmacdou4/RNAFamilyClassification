@@ -40,7 +40,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
             loss_val.mean().backward()
             optimizer.step()
             #  print ('gradient step [ {} / {} ]'.format(n, model_specs['gr_steps']))
-            training_reporter = 'FOLD {} STEP[{}/{}]\tTRAIN ['.format(str(foldn).zfill(3), n ,model_specs['gr_steps'] ) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | \t'.format(i+1, epochs, round(a / n, 4) * 100, round(l/n,3))
+            training_reporter = 'FOLD {} STEP[{}/{}]\tTRAIN ['.format(str(foldn).zfill(3), n ,model_specs['gr_steps'] ) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | AUC {} \t'.format(i+1, epochs, round(a / n, 4) * 100, round(l/n,3), AUC)
             CM_reporter = 'TP {}, TN {}, FP {} , FN {}, MCC : {}'.format(tp, tn, fp, fn, mcc)
             print(training_reporter + CM_reporter)
      
