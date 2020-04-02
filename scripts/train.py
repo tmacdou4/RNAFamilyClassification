@@ -25,10 +25,10 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
         for x,y in dataloader:
             x = Variable(x).to(device)
             y = Variable(y).to(device)
-            out = model(x).cuda()
+            out = model(x).to(device)
             n += 1
             loss_val = loss(out[:,0], y).view(-1, 1).expand_as(out)
-            acc = torch.eq(out.argmax(dim = -1), y).float().view(-1,1)     
+            acc = torch.eq(out.argmax(dim = -1), y.long()).float().view(-1,1)
             a += float(acc.mean().detach().cpu().numpy())
             l += float(loss_val.mean())
             tn, fp, fn, tp = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(), labels = np.arange(2, dtype=int)).ravel() 
