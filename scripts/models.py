@@ -63,7 +63,11 @@ class DNN(nn.Module):
         self.layers.extend(clones(nn.Linear(self.hidden_size, self.hidden_size), self.num_layers-1))
         #output layers
         self.out_layer = (nn.Linear(self.hidden_size, self.out_size))
-        self.out_nl = nn.Softmax(dim=-1)
+
+        if self.out_size != 1:
+            self.out_nl = nn.Softmax(dim=-1)
+        else:
+            self.out_nl = nn.Sigmoid()
 
     def forward(self, input):
 
