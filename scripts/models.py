@@ -41,7 +41,6 @@ class DNN(nn.Module):
         self.num_layers = model_specs['n_hid_lyrs']
         self.non_linearity = nn.ReLU()
         self.nt_vocab_size = 17
-        #self.hidden_size = model_specs['hidden_size']
         self.out_size = model_specs['output_size']
 
         self.seq_len = model_specs['seq_len'] # this is eq to input size !
@@ -247,7 +246,7 @@ class RNN(nn.Module):
         self.num_layers = model_specs['n_hid_lyrs']
         self.non_linearity = nn.ReLU()
         self.nt_vocab_size = 17
-        self.hidden_size = model_specs['HID1N']
+        self.hidden_size = model_specs['hidden_size']
         self.out_size = model_specs['output_size']
         self.bidirectional = True
         self.dropout = 0
@@ -311,7 +310,7 @@ class LSTM(nn.Module):
         self.num_layers = model_specs['n_hid_lyrs']
         self.non_linearity = nn.ReLU()
         self.nt_vocab_size = 17
-        self.hidden_size = model_specs['HID1N']
+        self.hidden_size = model_specs['hidden_size']
         self.out_size = model_specs['output_size']
         self.bidirectional = True
         self.dropout = 0
