@@ -6,6 +6,7 @@ from scipy import stats
 import torch 
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+import itertools
 
 filepath = '../data/'
 familypath = 'RF00005/'
@@ -173,5 +174,24 @@ def load_data_in_df(RFs, datapath = "../data" ,max_len = 500):
     labels_df = pd.DataFrame({'RFAM': labels, 'seed': seeds})
     return data_df, labels_df
 
+#Takes as input 1) a dictionary of default values - a base h-param grid
+#and 2) a dictionary of lists - the variable h-params
+#returns a list of dictionaries, corresponding to the complete hyperparameter grid, with the
+#variable parameters changed and the default parameters in all other places
+#Ex:
+#   default_dict = {a: 5, b: "banana", c: int}
+#   variable_dict = {a: [4,5], b:["orange","banana"]}
+#   output =   [{a: 4, c: "banana", d: int},
+#               {a: 4, c: "orange", d: int},
+#               {a: 5, c: "banana", d: int},
+#               {a: 5, c: "orange", d: int}]
+#
+def grid_generator(default_dict, variable_dict):
+    key, value = zip(*variable_dict.items())
+    all_dicts = [dict(zip(key, value)) for value in itertools.product(*value)]
+    for key in default_dict.keys():
+        if key not in variable_dict.keys():
+            for setup in all_dicts:
+                setup[key] = default_dict[key]
 
-
+    return all_dicts
