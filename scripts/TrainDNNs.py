@@ -9,6 +9,7 @@ from models import *
 import pdb
 import os
 import torch
+from sklearn import metrics
 from collections import defaultdict
 from torch import nn
 from torch.utils.data import DataLoader 
@@ -82,8 +83,36 @@ for ARCH  in ARCHs:
         RFID = '{}_{}'.format(rf, vs)
         target = rf
         modelID = 'WD{}'.format(args.WEIGHT_DECAY)
-        # define model specs
-        model_specs = {
+        # OUTDATED init file tree for reporters
+        #target_path = os.path.join(modelname, args.TARGET)
+        #progress_path = os.path.join(target_path, 'PROGRESS')
+        #models_path = os.path.join(target_path, 'MODELS')
+        #trainlog_path = os.path.join(target_path, 'TRAINING_LOGS')
+        #res_path = os.path.join(target_path, 'RES')
+        #
+        #assert_mkdir(target_path)
+        #assert_mkdir(progress_path)
+        #assert_mkdir(models_path)
+        #assert_mkdir(trainlog_path)
+        #assert_mkdir(res_path)
+
+        # prepare_outfile_paths
+
+        SETS_path = os.path.join(modelname, 'SETS')
+        MODELSPECS_path = os.path.join(modelname, 'MODELSPECS')
+        MODELS_path = os.path.join(modelname, 'MODELS')
+        assert_mkdir(SETS_path)
+        assert_mkdir(MODELSPECS_path)
+        assert_mkdir(MODELS_path)
+        assert_mkdir(os.path.join(modelname,'OUT')) # HARDCODE
+
+        # define train function 
+        from train import train
+        # foreach fold in xval
+        for foldn in range(1 , args.XVAL + 1):
+            
+            # define model specs
+            model_specs = {
                 'xval' : args.XVAL, 
                 'nseeds' : nseeds,
                 'test_size': test_size,                  
@@ -112,35 +141,11 @@ for ARCH  in ARCHs:
                 'tr_acc' : None,
                 'tr_auc' : None,
                 'tr_l' : None,
-                'tr_proc_time': None
+                'tr_proc_time': None,
+                'tst_acc' : None, 
+                'tst_auc' : None,
+                'tst_l' : None
                 }
-        # OUTDATED init file tree for reporters
-        #target_path = os.path.join(modelname, args.TARGET)
-        #progress_path = os.path.join(target_path, 'PROGRESS')
-        #models_path = os.path.join(target_path, 'MODELS')
-        #trainlog_path = os.path.join(target_path, 'TRAINING_LOGS')
-        #res_path = os.path.join(target_path, 'RES')
-        #
-        #assert_mkdir(target_path)
-        #assert_mkdir(progress_path)
-        #assert_mkdir(models_path)
-        #assert_mkdir(trainlog_path)
-        #assert_mkdir(res_path)
-
-        # prepare_outfile_paths
-
-        SETS_path = os.path.join(model_specs['model_layout'], 'SETS')
-        MODELSPECS_path = os.path.join(model_specs['model_layout'], 'MODELSPECS')
-        MODELS_path = os.path.join(model_specs['model_layout'], 'MODELS')
-        assert_mkdir(SETS_path)
-        assert_mkdir(MODELSPECS_path)
-        assert_mkdir(MODELS_path)
-        assert_mkdir(os.path.join('DNN','OUT')) # HARDCODE
-
-        # define train function 
-        from train import train
-        # foreach fold in xval
-        for foldn in range(1 , args.XVAL + 1):
             print('TASK {} ARCH {} MODEL {} fold {} / {}'.format(RFID, ARCH, modelID, foldn, args.XVAL)) 
             # store some static values 
             nsamples = model_specs['nseeds']
@@ -175,22 +180,47 @@ for ARCH  in ARCHs:
             # save up some reported values
             # update model_specs with various reports
             model_specs['tr_proc_time'] = time.clock() - startime
-            model_specs['ARCH'] = model_specs['ARCHID']
+            model_specs['ARCH'] = ".".join([str(e) for e in model_specs['ARCH']])
             # save model_specs dict under the name MODELFULLNAME.specs 
             with open(os.path.join(MODELSPECS_path, '{}.specs'.format(MODELFULLNAME)), 'w') as o : o.write(str(model_specs)) # to be updated 
             # report Training in outfile
             currDF = pd.DataFrame(model_specs.values(), index = model_specs.keys()).T
+            # test
+            out = model(torch.Tensor(TEST_X.values).cuda(args.DEVICE))
+            acc = out.argmax(dim = -1).detach().cpu().numpy() == TEST_Y.numeral
+            model_specs['tst_acc'] = float(acc.mean())
+            if len(np.unique(TEST_Y.numeral)) > 1: model_specs['tst_auc'] = metrics.roc_auc_score(y_true = TEST_Y.numeral, y_score = out[:,1].detach().cpu().numpy())
             # merge to outDF
-            if outDF != None : outDF = outDF.merge(currDF)
-            else : outDF = currDF
+            # if outDF != None : outDF = outDF.merge(currDF)
+            # else : outDF = currDF
             # insert comments
             outFile = open(os.path.join(model_specs['model_layout'],'OUT','{}.out'.format(MODELFULLNAME)), 'w')
             outFile.write("##" + str(args))
+            outFile.write("## test yscores:" + str(out[:,1].detach().cpu().numpy()))    
             currDF.to_csv(outFile)
             outFile.close()
 
+            # TO DOS 
+            # 1) SET VIM TO FTP SAVE FILES FROM MAC
+            # 2) REPORT TEST PERFORMANCE
+            # 3) DETECT PERFORMANCE BOTTLENECKS  
+            # 4) INFLUENCE OF SEED LENGTH 
+                 # RANDOM SEEDS EXPERIMENTS 
+                 # X SHUFFLE IN FAMILY
+                 # X RANDOM NEGATIVE SEEDS GC% AT% 
+                 # ---> RANDOM PADDING USING MARKOV 0 with GC% from whole dataset
 
+            # 5) NUC CONTENT
+                # X RANDOM PERMUTATIONS
+                # MARKOV SEQ ORDER 0 %GC by family
 
+            # 6) DINUC CONTENT 
+                # MARKOV SEQ ORDER 1 %DINUC by family
+                # With D-ORB
+                    
+                # Benchmark Infernal 
+                # Benchmark DORB
 
-
+            # 7) WORK MULTICLASS PREDICTION
+            # 8) WORK DIFFERENT MODEL LAYOUTS (CNN, RNN, LSTM)
 
