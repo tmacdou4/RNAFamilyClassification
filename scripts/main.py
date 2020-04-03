@@ -22,6 +22,8 @@ parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, h
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
 parser.add_argument('-t', dest = 'TARGET', default = 'RF01852', type = str, help = 'name of label to train on') 
 parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'random seed')
+parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help = 'device ex cuda:0')
+
 args = parser.parse_args()
 
 
@@ -81,7 +83,7 @@ model_specs = {
                 'epochs': args.EPOCHS,
                 'levels' : max(labels['numeral']) + 1,
                 'output_size' : max(labels['numeral']) + 1,
-                'device' : 'cuda:0',
+                'device' : args.DEVICE,
                 'training_acc' : None
                 }
 # OUTDATED init file tree for reporters
