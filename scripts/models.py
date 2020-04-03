@@ -25,10 +25,10 @@ class One_Hot_Encoding(nn.Module):
             device = input.get_device()
         else:
             device = torch.device("cpu")
+
+        input = input.unsqueeze(2)
         one_hot_data = torch.zeros(input.shape[0], input.shape[1], self.nt_vocab_size).to(device)
-        for i in range(one_hot_data.shape[0]):
-            for j in range(one_hot_data.shape[1]):
-                one_hot_data[i][j][int(input[i][j])] = 1
+        one_hot_data.scatter_(2, input, 1)
 
         return one_hot_data
 
@@ -76,9 +76,8 @@ class DNN(nn.Module):
         else:
             device = torch.device("cpu")
 
-        print(input.size())
-
         input = input.long()
+
         input = self.embeddings(input)
 
         input = input.view(input.shape[0], self.seq_len * self.emb_size)
