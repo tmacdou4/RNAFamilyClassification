@@ -68,7 +68,7 @@ X = np.array([max(minNodes, 10 ** log10) for log10 in range(int(np.log10(maxNode
 L = np.arange(2,maxLyrs + 1)
 ARCHs = []
 for N in L:
-    combN = np.array([e for e in it.combinations_with_replacement(X[::-1], N)])[::-1]
+    combN = [list(e) for e in it.combinations_with_replacement(X[::-1], N)][::-1]
     for a in combN :
         ARCHs.append(a)
 
@@ -135,6 +135,7 @@ for ARCH  in ARCHs:
         assert_mkdir(SETS_path)
         assert_mkdir(MODELSPECS_path)
         assert_mkdir(MODELS_path)
+        assert_mkdir(os.path.join('DNN','OUT')) # HARDCODE
 
         # define train function 
         from train import train
@@ -161,7 +162,6 @@ for ARCH  in ARCHs:
             # dataset = Dataset({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)})
             dataset  = BalancedDataPicker({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)[np.newaxis].T }) 
             dl = DataLoader(dataset, batch_size = model_specs['batch_size']) 
-            pdb.set_trace()
             # init model
             model = DNN(model_specs).to(model_specs['device'])
             # train model
@@ -175,20 +175,19 @@ for ARCH  in ARCHs:
             # save up some reported values
             # update model_specs with various reports
             model_specs['tr_proc_time'] = time.clock() - startime
+            model_specs['ARCH'] = model_specs['ARCHID']
             # save model_specs dict under the name MODELFULLNAME.specs 
             with open(os.path.join(MODELSPECS_path, '{}.specs'.format(MODELFULLNAME)), 'w') as o : o.write(str(model_specs)) # to be updated 
             # report Training in outfile
-            currDF = pd.DataFrame(model_specs)
-            pdb.set_trace()
+            currDF = pd.DataFrame(model_specs.values(), index = model_specs.keys()).T
             # merge to outDF
             if outDF != None : outDF = outDF.merge(currDF)
             else : outDF = currDF
-            assert_mkdir('RES')
-            outFile = open(os.path.join('RES','Training_{}_[{}].out'.format(model_specs['model_layout'],".".join(time.clock()))))
             # insert comments
-            outFile.write("##" + ", ".join(args))
-            outDf.to_csv(outFile)
-            outDF.close
+            outFile = open(os.path.join(model_specs['model_layout'],'OUT','{}.out'.format(MODELFULLNAME)), 'w')
+            outFile.write("##" + str(args))
+            currDF.to_csv(outFile)
+            outFile.close()
 
 
 
