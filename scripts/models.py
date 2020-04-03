@@ -46,7 +46,7 @@ class DNN(nn.Module):
 
         self.seq_len = model_specs['seq_len'] # this is eq to input size !
         #Embbed or one-hot?
-        self.embed = True
+        self.embed = False
 
         if self.embed:
             self.emb_size = 5
@@ -245,7 +245,7 @@ class RNN(nn.Module):
         self.nt_vocab_size = 17
         self.hidden_size = model_specs['HID1N']
         self.out_size = model_specs['output_size']
-        self.bidirectional = False
+        self.bidirectional = True
         self.dropout = 0
 
         self.seq_len = model_specs['seq_len']  # this is eq to input size !
