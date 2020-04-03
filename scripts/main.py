@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 # parse arguments 
-parser.add_argument('-arch', dest = 'ARCH', default = [100, 200], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
+parser.add_argument('-arch', dest = 'ARCH', default = [200, 100], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
 parser.add_argument('-epochs',dest = 'EPOCHS', default = 3, type = int, help = 'nb of max epochs')
 parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, help = 'L2 parametrization [0:no regularization]')
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
@@ -61,7 +61,8 @@ model_specs = {
                 'test_size': test_size,                  
                 'train_size' : train_size,
                 'gr_steps': gr_steps,
-                'model_layout': 'DNN', 
+                'model_layout': 'DNN',
+                'ARCH': ARCH,
                 'n_hid_lyrs': len(ARCH),
                 'loader': 'balanced',
                 'target': args.TARGET,
@@ -72,8 +73,7 @@ model_specs = {
                 'wd' : args.WEIGHT_DECAY, 
                 'lr': 1e-4,
                 'drp-1': 0,
-                'HID1N': ARCH[0],
-                'HID2N': ARCH[1],
+                'hidden_size': ARCH[0],
                 'ARCHID': '.'.join([str(e) for e in ARCH]),
                 'MODID': 'DEBUG',
                 'RFID': '{}_{}'.format(args.TARGET, vs),

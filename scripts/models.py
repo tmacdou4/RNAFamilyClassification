@@ -41,7 +41,7 @@ class DNN(nn.Module):
         self.num_layers = model_specs['n_hid_lyrs']
         self.non_linearity = nn.ReLU()
         self.nt_vocab_size = 17
-        self.hidden_size = model_specs['HID1N']
+        #self.hidden_size = model_specs['hidden_size']
         self.out_size = model_specs['output_size']
 
         self.seq_len = model_specs['seq_len'] # this is eq to input size !
@@ -56,13 +56,16 @@ class DNN(nn.Module):
             self.emb_size = 17
             self.embeddings = One_Hot_Encoding(17)
 
+        self.ARCH = [self.emb_size*self.seq_len] + model_specs['ARCH']
         self.layers = nn.ModuleList()
         #first layer
-        self.layers.append(nn.Linear(self.emb_size*self.seq_len, self.hidden_size))
+        #self.layers.append(nn.Linear(self.emb_size*self.seq_len, self.ARCH[0]))
         #middle layers
-        self.layers.extend(clones(nn.Linear(self.hidden_size, self.hidden_size), self.num_layers-1))
+        for i in range(1, self.num_layers+1):
+            self.layers.append(nn.Linear(self.ARCH[i-1], self.ARCH[i]))
+        #self.layers.extend(clones(nn.Linear(self.hidden_size, self.hidden_size), self.num_layers-1))
         #output layers
-        self.out_layer = (nn.Linear(self.hidden_size, self.out_size))
+        self.out_layer = (nn.Linear(self.ARCH[-1], self.out_size))
 
         if self.out_size != 1:
             self.out_nl = nn.Softmax(dim=-1)
@@ -81,6 +84,7 @@ class DNN(nn.Module):
         input = self.embeddings(input)
 
         input = input.view(input.shape[0], self.seq_len * self.emb_size)
+
         for layer in range(self.num_layers):
             input = self.non_linearity(self.layers[layer](input))
         input = self.out_layer(input)
