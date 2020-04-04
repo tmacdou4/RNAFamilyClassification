@@ -40,7 +40,7 @@ def non_std_char(seqs):
 #padded up to max_length with either the "-" character
 #(for random = "none"), uniform across ACGU for random = "uniform"
 #Also now truncates all sequences longer than max_length
-def pad_to_fixed_length(seqs, max_length = 100, random="uniform"):
+def pad_to_fixed_length(seqs, max_length = 100, random="none"):
     # For now, not using the structure that finds the max length sequence
     # for l in seqs:
     #     if len(l) > max_length:
