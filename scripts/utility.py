@@ -35,19 +35,32 @@ def non_std_char(seqs):
                 chars.add(c)
     return chars
 
+#Takes a list of list of ints
 #returns 2D numpy array of index ints
-def pad_to_fixed_length(seqs, max_length = 100):
-    for l in seqs:
-        if len(l) > max_length:
-            max_length = len(l)
+#padded up to max_length with either the "-" character
+#(for random = "none"), uniform across ACGU for random = "uniform"
+#Also now truncates all sequences longer than max_length
+def pad_to_fixed_length(seqs, max_length = 100, random="uniform"):
+    # For now, not using the structure that finds the max length sequence
+    # for l in seqs:
+    #     if len(l) > max_length:
+    #         max_length = len(l)
 
-    fixed_seqs = np.zeros(shape=(len(seqs), max_length))
+    fixed_seqs = 6*np.ones(shape=(len(seqs), max_length))
+
     for i in range(len(seqs)):
-        for j in range(len(seqs[i])):
-            fixed_seqs[i][j] = seqs[i][j]
+        if len(seqs[i]) < max_length:
+            fixed_seqs[i][:len(seqs[i])] = np.array(seqs[i])
+        else:
+            fixed_seqs[i] = np.array(seqs[i])[:max_length]
+    if random == "none":
+        #sequence already padded with "6's" which correspond to the "-" nucleotide
+        pass
 
-        for j in range(len(seqs[i]), (max_length-len(seqs[i]))+len(seqs[i]), 1):
-            fixed_seqs[i][j] = 6
+    elif random == "uniform":
+        for i in range(len(seqs)):
+            if len(seqs[i]) < max_length:
+                fixed_seqs[i][len(seqs[i]):] = np.random.randint(0, 5, size=(1,max_length-len(seqs[i])))
 
     return fixed_seqs
 

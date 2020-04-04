@@ -8,13 +8,20 @@ import copy
 from models import *
 from utility import *
 
-specs = {'n_hid_lyrs': 2, 'output_size' : 2, 'batch_size' : 50, 'HID1N': 8, 'seq_len': 300, 'ARCH': [200,200]}
+# specs = {'n_hid_lyrs': 2, 'output_size' : 2, 'batch_size' : 50, 'HID1N': 8, 'seq_len': 300, 'ARCH': [200,200]}
+#
+# net = DNN(specs).cuda()
+#
+# print(net)
+#
+# #test sequences of shape (num_seq * seq_len) made of torch.long indexes
+# sequences = torch.Tensor(np.random.randint(0, 17, size=(50, 300))).cuda()
+#
+# print(net(sequences))
 
-net = DNN(specs).cuda()
 
-print(net)
+seqs = seq_loader("data", "RF00009", "fasta_unaligned.txt")
+seqs_index = seq_to_nt_ids(seqs)
+fixed = pad_to_fixed_length(seqs_index, max_length=440, random="uniform")
 
-#test sequences of shape (num_seq * seq_len) made of torch.long indexes
-sequences = torch.Tensor(np.random.randint(0, 17, size=(50, 300))).cuda()
-
-print(net(sequences))
+print(fixed[:,-1])
