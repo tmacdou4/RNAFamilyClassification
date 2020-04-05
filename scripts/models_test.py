@@ -20,8 +20,25 @@ from utility import *
 # print(net(sequences))
 
 
-seqs = seq_loader("data", "RF00009", "fasta_unaligned.txt")
-seqs_index = seq_to_nt_ids(seqs)
-fixed = pad_to_fixed_length(seqs_index, max_length=440, random="uniform")
+# seqs = seq_loader("data", "RF00009", "fasta_unaligned.txt")
+# seqs_index = seq_to_nt_ids(seqs)
+# fixed = pad_to_fixed_length(seqs_index, max_length=440, random="uniform")
+#
+# print(fixed[:,-1])
 
-print(fixed[:,-1])
+datapath = "data"
+
+#RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))]
+
+#data, labels = load_data_in_df(RFs, datapath = datapath, max_len = 500)
+
+#labels['numeral'] = np.array(labels['RFAM'] == "RF00009", dtype = int)
+
+RFs = [['RF00005', 'RF00009']]
+
+data, labels = load_data(RFs, datapath=datapath, max_len = 500)
+
+print(data)
+print(labels)
+
+#seqs = generate_based_on_family("RF00005", datapath=datapath)

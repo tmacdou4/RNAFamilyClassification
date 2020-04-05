@@ -208,3 +208,115 @@ def grid_generator(default_dict, variable_dict):
                 setup[key] = default_dict[key]
 
     return all_dicts
+
+
+#Takes an RF structure list (see below), a datapath string and a max_len int
+#Returns 2 data frames : one for data, with indexes and NT id's and one for
+#Labels, with RFAM ID ["RFAM"], Seed sequence, ["seed"] and class label, "numeral"
+
+#The "RF structure list" determines which families are included and which labels
+#they are assigned.
+
+#RF_structure = ['ALL'] is a completely multiclass setup
+
+#RF_structure = ['RF00005', 'REST'] is one vs rest with RF00005 as the one out.
+
+#RF_structure = ['RF00005', 'RANDOM'] is one vs one with RF00005 and an equal number
+#of randomly generated sequences based on RF00005. If more families are included, the random
+#sequences are always based on the first listed sequence.
+
+#RF_structure = ['RF00005', 'RF00009'] is one vs one between these classes
+
+#RF_structure = ['RF00005', 'RF00009', 'REST'] is three way classification between 2
+#specific classes and the third class being the rest of the sequences in one big class
+
+#RF_structure = [['RF00005', 'RF00009'], 'REST'] is two way classification between RF00005 and RF00009
+#combined into one class, and the rest of the sequences in one class
+
+##RF_structure = [['RF00005', 'RF00009'], ['RF00001', 'RF01865'], 'RF01852'] is three way
+# classification between RF00005 and RF00009 combined into one class,
+# RF00001 and RF01865 combined into one class, and RF01865 as the third class
+
+#All of the other combinations of these are possible
+def load_data(RF_structure, datapath="data", max_len=500):
+    data = []
+    labels = []
+    labels_numeral = []
+    seeds = []
+    seen_fams = set()
+    first_fam = None
+
+    all_RFs = [path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath, path))]
+
+    for i, klass in enumerate(RF_structure):
+        if type(klass) == list:
+            for fam in klass:
+                if first_fam is None:
+                    first_fam = fam
+                if fam not in seen_fams:
+                    seen_fams.add(fam)
+                    seqs = seq_loader(datapath, fam, 'fasta_unaligned.txt')
+                    seqs_index = seq_to_nt_ids(seqs)
+                    fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+                    data.append(fixed_seqs)
+                    labels.append([fam for _ in range(len(fixed_seqs))])
+                    labels_numeral.append([i for _ in range(len(fixed_seqs))])
+                    seeds.append(seqs)
+
+        elif klass == "REST":
+            for rf in all_RFs:
+                if rf not in seen_fams:
+                    seqs = seq_loader(datapath, rf, 'fasta_unaligned.txt')
+                    seqs_index = seq_to_nt_ids(seqs)
+                    fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+                    data.append(fixed_seqs)
+                    labels.append([rf for _ in range(len(fixed_seqs))])
+                    labels_numeral.append([i for _ in range(len(fixed_seqs))])
+                    seeds.append(seqs)
+            break
+
+        elif klass == "RANDOM":
+            if first_fam is None:
+                first_fam = 'RF00005'
+
+            seqs_index = generate_based_on_family(first_fam, datapath=datapath)
+            fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+            data.append(fixed_seqs)
+            labels.append([(first_fam + "_RAND") for _ in range(len(fixed_seqs))])
+            labels_numeral.append([i for _ in range(len(fixed_seqs))])
+            seeds.append(['RAND' for _ in range(len(fixed_seqs))])
+
+        elif klass == "ALL":
+            for rf in all_RFs:
+                if rf not in seen_fams:
+                    seqs = seq_loader(datapath, rf, 'fasta_unaligned.txt')
+                    seqs_index = seq_to_nt_ids(seqs)
+                    fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+                    data.append(fixed_seqs)
+                    labels.append([rf for _ in range(len(fixed_seqs))])
+                    labels_numeral.append([i for _ in range(len(fixed_seqs))])
+                    seeds.append(seqs)
+                    i += 1
+            break
+
+        else:
+            if first_fam is None:
+                first_fam = klass
+            if klass not in seen_fams:
+                seen_fams.add(klass)
+                seqs = seq_loader(datapath, klass, 'fasta_unaligned.txt')
+                seqs_index = seq_to_nt_ids(seqs)
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+                data.append(fixed_seqs)
+                labels.append([klass for _ in range(len(fixed_seqs))])
+                labels_numeral.append([i for _ in range(len(fixed_seqs))])
+                seeds.append(seqs)
+
+
+    seeds = np.concatenate(seeds)
+    data = np.concatenate(data)
+    labels = np.concatenate(labels)
+    labels_numeral = np.concatenate(labels_numeral)
+    data_df = pd.DataFrame(data)
+    labels_df = pd.DataFrame({'RFAM': labels, 'seed': seeds, 'numeral': labels_numeral})
+    return data_df, labels_df
