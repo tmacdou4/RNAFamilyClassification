@@ -312,7 +312,6 @@ def load_data(RF_structure, datapath="data", max_len=500):
                 labels_numeral.append([i for _ in range(len(fixed_seqs))])
                 seeds.append(seqs)
 
-
     seeds = np.concatenate(seeds)
     data = np.concatenate(data)
     labels = np.concatenate(labels)
