@@ -8,6 +8,9 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 import itertools
 
+
+
+
 filepath = '../data/'
 familypath = 'RF00005/'
 filename= 'fasta_unaligned.txt'
@@ -168,18 +171,51 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
 
     return rand_seqs
 
+# markov_chain_generator
+def markov_chain_generator(input_seqs, n = 1, order = 0):
+        pass
+
 # loading data into data frame
-def load_data_in_df(RFs, datapath = "../data" ,max_len = 500):
+def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
     data = []
     labels = []
     seeds = []
     for RF in RFs:            
         seqs = seq_loader(datapath, RF, 'fasta_unaligned.txt')
         seqs_index = seq_to_nt_ids(seqs)
-        fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
+        
+        # zero padding method
+        if method == 'ZP': 
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
+
+        # random padding method
+        elif method == 'RP':
+                fixed_seqs = None
+
+        # nucshfl + zero padding method
+        elif method == 'NUCSCHFLZP':
+                fixed_seqs = None
+        
+        # markov chain random generator order 1 + zero padding (  within target family only ! ) 
+        elif method == 'FMLM1' and RF == target : 
+                # pad RFAM samples
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
+                # store nseqs
+                nseqs = len(fixed_seqs)
+                # generate random seqs (negative samples)
+                random_seqs = markov_chain_generator(seqs, n = nseqs, order = 1)
+                rdm_seqs_index = seq_to_nt_ids(random_seqs)
+                rdm_fixed_seqs = pad_to_fixed_length(random_seqs, max_length = max_len)
+                
+                seeds = np.concatenate([[seqs],[random_seqs]]) 
+                data = np.concatenate([[fixed_seqs],[rdm_fixed_seqs]])
+                labels = np.concatenate([[RF for i in range(nseqs)],['RANDOM_FMLM1' for i in range(nseqs) ]])
+                return pd.DataFrame(data), pd.DataFrame({'RFAM': labels, 'seed': seeds})
+                
         data.append(fixed_seqs)
         labels.append([RF for i in range(len(fixed_seqs))])
         seeds.append(seqs)
+    
     seeds = np.concatenate(seeds)
     data = np.concatenate(data)    
     labels  = np.concatenate(labels)
