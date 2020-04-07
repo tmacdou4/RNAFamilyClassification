@@ -22,16 +22,14 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 # parse arguments 
-parser.add_argument('-arch', dest = 'ARCH', default = [5, 2], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
-parser.add_argument('-epochs',dest = 'EPOCHS', default = 3, type = int, help = 'nb of max epochs')
+parser.add_argument('-arch', dest = 'ARCH', default = [10, 3], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
+parser.add_argument('-epochs',dest = 'EPOCHS', default = 10 , type = int, help = 'nb of max epochs')
 parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, help = 'L2 parametrization [0:no regularization]')
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
-parser.add_argument('-t', dest = 'TARGET', default = 'RF01852', type = str, help = 'name of label to train on') 
 parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'random seed')
 parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help = 'device ex cuda:0')
 
 args = parser.parse_args()
-
 
 # some other global variables
 # paths
@@ -50,38 +48,20 @@ RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapa
 TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
 
 
+# generate architectures
+maxNodes = args.ARCH[0]
+maxLyrs = args.ARCH[1]
+minNodes = 5
+X = np.array([max(minNodes, 10 ** log10) for log10 in range(int(np.log10(maxNodes)))] )
+L = np.arange(2,maxLyrs + 1)
+ARCHs = []
+for N in L:
+    combN = [list(e) for e in it.combinations_with_replacement(X[::-1], N)][::-1]
+    for a in combN :
+        ARCHs.append(a)
+
 # cycle through TASKS (4):
-for taskID in TASKS:
-        # loading data into data frame
-        data, labels = load_data_in_df(RFs, taskID, datapath = datapath, max_len = seq_len)
-        np.random.seed(args.SEED) # set numpy seed for data shuffle  
-        # multiclass ONLY
-        # numeric_labels = dict(zip(np.unique(labels['RFAM']), np.arange(len(np.unique(labels['RFAM'])))))
-        # labels['numeral'] = [numeric_labels[l] for l in labels['RFAM']]
-        labels['numeral'] = np.array(labels['RFAM'] == args.TARGET, dtype = int)
-        torch.manual_seed(args.SEED) # set torch seed for model initialization 
-        rnd_idxs = np.arange(labels.shape[0]) # get ids 
-        np.random.shuffle(rnd_idxs)    # shuffles ids
-        labels = labels.iloc[rnd_idxs] # shuffle labels
-        data = data.iloc[rnd_idxs] # shuffle data
-        # static stats variables
-        nseeds = labels.shape[0]
-        test_size = int(float(nseeds) / args.XVAL)
-        train_size = nseeds - test_size
-        gr_steps = int(float(train_size) / bs) + 1
-        
-        # generate architectures
-        maxNodes = args.ARCH[0]
-        maxLyrs = args.ARCH[1]
-        minNodes = 5
-        X = np.array([max(minNodes, 10 ** log10) for log10 in range(int(np.log10(maxNodes)))] )
-        L = np.arange(2,maxLyrs + 1)
-        ARCHs = []
-        for N in L:
-            combN = [list(e) for e in it.combinations_with_replacement(X[::-1], N)][::-1]
-            for a in combN :
-                ARCHs.append(a)
-        
+for taskID in TASKS: 
         # cycle through architectures (1)
         for ARCH  in ARCHs:
             # cycle through RNA families (24) 
@@ -90,6 +70,24 @@ for taskID in TASKS:
                 target = rfID
                 modelID = 'WD{}'.format(args.WEIGHT_DECAY)
                 CLSFID = 'BIN'
+                
+                # loading data into data frame
+                data, labels = load_data_in_df(target, RFs, taskID, datapath = datapath, max_len = seq_len)
+                np.random.seed(args.SEED) # set numpy seed for data shuffle  
+                # multiclass ONLY
+                # numeric_labels = dict(zip(np.unique(labels['RFAM']), np.arange(len(np.unique(labels['RFAM'])))))
+                # labels['numeral'] = [numeric_labels[l] for l in labels['RFAM']]
+                labels['numeral'] = np.array(labels['RFAM'] == target, dtype = int)
+                torch.manual_seed(args.SEED) # set torch seed for model initialization 
+                rnd_idxs = np.arange(labels.shape[0]) # get ids 
+                np.random.shuffle(rnd_idxs)    # shuffles ids
+                labels = labels.iloc[rnd_idxs] # shuffle labels
+                data = data.iloc[rnd_idxs] # shuffle data
+                # static stats variables
+                nseeds = labels.shape[0]
+                test_size = int(float(nseeds) / args.XVAL)
+                train_size = nseeds - test_size
+                gr_steps = int(float(train_size) / bs) + 1
                 
                 # prepare_outfile_paths
                 SETS_path = os.path.join(modelname, 'SETS')
@@ -142,7 +140,7 @@ for taskID in TASKS:
                         'tst_auc' : None,
                         'tst_l' : None
                         }
-                    print('RFID {} (BINARY) TASK {} ARCH {} MODEL {} fold {} / {}'.format(RFID, taskid, ARCH, modelID, foldn, args.XVAL)) 
+                    print('RFID {} (BINARY) TASK {} ARCH {} MODEL {} fold {} / {}'.format(rfID, taskID, ARCH, modelID, foldn, args.XVAL)) 
                     # store some static values 
                     nsamples = model_specs['nseeds']
                     test_size = model_specs['test_size']
@@ -186,9 +184,9 @@ for taskID in TASKS:
                     model_specs['tst_acc'] = float(acc.mean())
                     if len(np.unique(TEST_Y.numeral)) > 1: model_specs['tst_auc'] = metrics.roc_auc_score(y_true = TEST_Y.numeral, y_score = out[:,1].detach().cpu().numpy())
                     # report Training in outfile
-                    currDF = pd.DataFrame(model_specs.values(), index = model_specs.keys()).T
+                    currDF =  pd.DataFrame(list(model_specs.values()), index = list(model_specs.keys())).T
                     # create outfile 
-                    outFile = open(os.path.join(path, MODELFULLNAME + ".csv"), 'w')
+                    outFile = open(os.path.join(RES_path, MODELFULLNAME + ".csv"), 'w')
                     # insert comments
                     outFile.write("##" + str(args) + "\n")
                     outFile.write("## test yscores:" + str(out[:,1].detach().cpu().numpy()) + "\n")    
@@ -218,4 +216,3 @@ for taskID in TASKS:
 
                     # 7) WORK MULTICLASS PREDICTION
                     # 8) WORK DIFFERENT MODEL LAYOUTS (CNN, RNN, LSTM)
-
