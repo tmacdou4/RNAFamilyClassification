@@ -175,6 +175,15 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
 def markov_chain_generator(input_seqs, n = 1, order = 0):
         pass
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
+
 # loading data into data frame
 def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
     data = []

@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 # parse arguments 
-parser.add_argument('-arch', dest = 'ARCH', default = [10, 3], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
+parser.add_argument('-arch', dest = 'ARCH', default = [10, 2], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
 parser.add_argument('-epochs',dest = 'EPOCHS', default = 10 , type = int, help = 'nb of max epochs')
 parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, help = 'L2 parametrization [0:no regularization]')
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
@@ -45,8 +45,9 @@ seq_len = 600 # how to get the optimal number efficiently ?
 
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
-TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
-
+# TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
+# only ZP implemented so far
+TASKS = ['ZP']
 
 # generate architectures
 maxNodes = args.ARCH[0]
@@ -59,7 +60,8 @@ for N in L:
     combN = [list(e) for e in it.combinations_with_replacement(X[::-1], N)][::-1]
     for a in combN :
         ARCHs.append(a)
-
+# SET ARCHs
+ARCHs = [[1000,1000]]
 # cycle through TASKS (4):
 for taskID in TASKS: 
         # cycle through architectures (1)
@@ -107,6 +109,7 @@ for taskID in TASKS:
                     # define model specs
                     model_specs = {
                         'xval' : args.XVAL, 
+                        'shfl_seed' : args.SEED,
                         'nseeds' : nseeds,
                         'test_size': test_size,                  
                         'train_size' : train_size,
@@ -114,6 +117,7 @@ for taskID in TASKS:
                         'model_layout': modelname,
                         'ARCH': ARCH, # needs update bcs it's array
                         'n_hid_lyrs': len(ARCH),
+                        'n_free_params': None,
                         'loader': loader,
                         'target': target,
                         'seq_len': seq_len,
@@ -164,6 +168,8 @@ for taskID in TASKS:
                     dl = DataLoader(dataset, batch_size = model_specs['batch_size']) 
                     # init model
                     model = DNN(model_specs).to(model_specs['device'])
+                    # store nb of params in model
+                    model_specs['n_free_params'] = get_n_params(model)
                     # train model
                     print('training model...')
                     # time stamp
@@ -189,7 +195,7 @@ for taskID in TASKS:
                     outFile = open(os.path.join(RES_path, MODELFULLNAME + ".csv"), 'w')
                     # insert comments
                     outFile.write("##" + str(args) + "\n")
-                    outFile.write("## test yscores:" + str(out[:,1].detach().cpu().numpy()) + "\n")    
+                    outFile.write("## test yscores:" + ",".join([str(score) for score in out[:,1].detach().cpu().numpy()]) + "\n")    
                     currDF.to_csv(outFile, sep = '\t')
                     outFile.close()
 
