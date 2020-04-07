@@ -14,6 +14,10 @@ from collections import defaultdict
 from torch import nn
 from torch.utils.data import DataLoader 
 
+#
+# TrainDNNs.py
+#
+
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
@@ -38,7 +42,7 @@ lr = 1e-4
 drp=0
 vs = 'REST'
 bs = 128
-loader = 'balnaced'
+loader = 'balanced'
 seq_len = 600 # how to get the optimal number efficiently ?
 
 # Set RFs to include
@@ -183,21 +187,21 @@ for ARCH  in ARCHs:
             model_specs['ARCH'] = ".".join([str(e) for e in model_specs['ARCH']])
             # save model_specs dict under the name MODELFULLNAME.specs 
             with open(os.path.join(MODELSPECS_path, '{}.specs'.format(MODELFULLNAME)), 'w') as o : o.write(str(model_specs)) # to be updated 
-            # report Training in outfile
-            currDF = pd.DataFrame(model_specs.values(), index = model_specs.keys()).T
             # test
             out = model(torch.Tensor(TEST_X.values).cuda(args.DEVICE))
             acc = out.argmax(dim = -1).detach().cpu().numpy() == TEST_Y.numeral
             model_specs['tst_acc'] = float(acc.mean())
             if len(np.unique(TEST_Y.numeral)) > 1: model_specs['tst_auc'] = metrics.roc_auc_score(y_true = TEST_Y.numeral, y_score = out[:,1].detach().cpu().numpy())
+            # report Training in outfile
+            currDF = pd.DataFrame(model_specs.values(), index = model_specs.keys()).T
             # merge to outDF
             # if outDF != None : outDF = outDF.merge(currDF)
             # else : outDF = currDF
             # insert comments
             outFile = open(os.path.join(model_specs['model_layout'],'OUT','{}.out'.format(MODELFULLNAME)), 'w')
-            outFile.write("##" + str(args))
-            outFile.write("## test yscores:" + str(out[:,1].detach().cpu().numpy()))    
-            currDF.to_csv(outFile)
+            outFile.write("##" + str(args) + "\n")
+            outFile.write("## test yscores:" + str(out[:,1].detach().cpu().numpy()) + "\n")    
+            currDF.to_csv(outFile, sep = '\t')
             outFile.close()
 
             # TO DOS 

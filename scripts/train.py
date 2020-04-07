@@ -23,7 +23,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
         auc = 0
         TP, FN, FP, TN = 0,0,0,0
         mcc = 0
-        reporter_step = 100
+        reporter_step = 15
         # CM = np.zeros((model_specs['output_size'], model_specs['output_size']))
         for x,y in dataloader:
             x = Variable(x).to(device)
@@ -41,7 +41,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
                     yscores =  out[:,1].detach().cpu().numpy()
                     auc += metrics.roc_auc_score(y_true = y.detach().cpu().numpy(), y_score = yscores)
                     #  print ('gradient step [ {} / {} ]'.format(n, model_specs['gr_steps']))
-                    training_reporter = 'FOLD {} STEP[{}/{}]\tTRAIN ['.format(str(foldn).zfill(3), n ,model_specs['gr_steps'] ) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | AUC {} \t'.format(minibatch_count, gr_steps * epochs, round(a / n, 4) * 100, round(l/n,3), round(auc / n, 3))
+                    training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | AUC {} \t'.format(minibatch_count, gr_steps * epochs, round(a / n, 4) * 100, round(l/n,3), round(auc / n, 3))
                     CM_reporter = 'TP {}, TN {}, FP {} , FN {}, MCC : {}'.format(tp, tn, fp, fn, mcc)
                     print(training_reporter + CM_reporter)
             # gradient steps 
