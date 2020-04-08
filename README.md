@@ -3,7 +3,7 @@ Classification of RNA Sequences Into Families Directly From Sequence Using Deep 
 
 Environment setup using conda:
 
-    conda create -y -n RNAClassification python=3.7 scipy pandas scikit-learn pytorch torchvision cudatoolkit=10.1 -c pytorch
+    conda create -y -n RNAClassification python=3.7 scipy pandas matplotlib scikit-learn pytorch torchvision cudatoolkit=10.1 -c pytorch
 II - Timeline and Project Steps: 
 This is a preliminary timeline and timestamps that will be used to guide us during the project. 
 We are keeping in mind that some of the experiments will be conducted at the same time in parallel. 

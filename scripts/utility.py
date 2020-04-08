@@ -136,7 +136,7 @@ def assert_mkdir(path):
         currdir = os.path.join(str(currdir), str(dir))
 
 #composition of a given RFAM family
-def generate_based_on_family(RFAM_name, datapath = "../data"):
+def generate_based_on_family(RFAM_name, datapath = "../data", order=0):
 
     #Do some statistics to match an RFAM family in sequence length and sequence composition
     seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
@@ -172,16 +172,75 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
 
     return rand_seqs
 
+# Only does first and second order. Takes an RFAM name
+# and returns a list of list of nucleotide id's where each one is the same length
+# the the corresponding real sequence but the content is randomized with a 0th or
+# 1st order markov method.
+def markov_generate(RFAM_name, datapath = "../data", order=1):
+    seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
+    data = seq_to_nt_ids(seqs)
+
+    #data = RFAM_name
+
+    nt_vocab_size = 4
+
+    prob_grid_0 = np.zeros(nt_vocab_size)
+
+    prob_grid_1 = np.zeros((nt_vocab_size, nt_vocab_size))
+
+    prob_grid_2 = np.zeros((nt_vocab_size, nt_vocab_size, nt_vocab_size))
+
+    for l in data:
+        prev_1 = -1
+        prev_2 = -1
+
+        for c in l:
+            if c < 4:
+                prob_grid_0[c] += 1
+                if prev_1 >= 0:
+                    prob_grid_1[prev_1][c] += 1
+                if prev_2 >= 0:
+                    prob_grid_2[prev_2][prev_1][c] += 1
+
+                prev_2 = prev_1
+                prev_1 = c
+
+    prob_grid_0 = prob_grid_0/np.sum(prob_grid_0)
+
+    sum_1 = np.sum(prob_grid_1, axis=-1).reshape(prob_grid_1.shape[0],-1)
+
+    prob_grid_1 = prob_grid_1/sum_1
+
+    pmf_0 = stats.rv_discrete(values=(list(range(nt_vocab_size)), prob_grid_0))
+
+    pmf_1 = []
+    for i in range(nt_vocab_size):
+        pmf_1.append(stats.rv_discrete(values=(list(range(nt_vocab_size)), prob_grid_1[i])))
+
+    lengths = [len(x) for x in seqs]
+
+    rand_seqs = []
+
+    for i, l in enumerate(lengths):
+        rand_seqs.append([])
+        rand_seqs[i].append(pmf_0.rvs())
+
+        if order == 0:
+            for j in range(1,l):
+                rand_seqs[i].append(pmf_0.rvs())
+
+        elif order == 1:
+            for j in range(1,l):
+                rand_seqs[i].append(pmf_1[rand_seqs[i][j-1]].rvs())
+
+    return rand_seqs
+
 def shuffle_seqs_in_family(RFAM_name, datapath = "../data"):
     seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
     data = seq_to_nt_ids(seqs)
     shuffled_data = [random.sample(x, len(x)) for x in data]
 
     return shuffled_data
-
-# markov_chain_generator
-def markov_chain_generator(input_seqs, n = 1, order = 0):
-        pass
 
 def get_n_params(model):
     pp=0
@@ -220,19 +279,26 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len)
         
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
-        elif method == 'FMLM1' and RF == target : 
-                # pad RFAM samples
-                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
-                # store nseqs
-                nseqs = len(fixed_seqs)
-                # generate random seqs (negative samples)
-                random_seqs = markov_chain_generator(seqs, n = nseqs, order = 1)
-                rdm_seqs_index = seq_to_nt_ids(random_seqs)
-                rdm_fixed_seqs = pad_to_fixed_length(random_seqs, max_length = max_len)
-                
-                seeds = np.concatenate([[seqs],[random_seqs]]) 
-                data = np.concatenate([[fixed_seqs],[rdm_fixed_seqs]])
-                labels = np.concatenate([[RF for i in range(nseqs)],['RANDOM_FMLM1' for i in range(nseqs) ]])
+        elif method == 'FMLM1' and RF == target:
+
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length= max_len)
+
+                rand_seqs_index = markov_generate(target, datapath="data", order=1)
+                rand_fixed_seqs = pad_to_fixed_length(rand_seqs_index, max_length=max_len)
+
+                # Old, unfinished code for markov generation
+                # # pad RFAM samples
+                # fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
+                # # store nseqs
+                # nseqs = len(fixed_seqs)
+                # # generate random seqs (negative samples)
+                # random_seqs = markov_chain_generator(seqs, n = nseqs, order = 1)
+                # rdm_seqs_index = seq_to_nt_ids(random_seqs)
+                # rdm_fixed_seqs = pad_to_fixed_length(random_seqs, max_length = max_len)
+                #
+                seeds = np.concatenate([seqs,["RAND" for _ in range(len(rand_fixed_seqs))]])
+                data = np.concatenate([fixed_seqs,rand_fixed_seqs])
+                labels = np.concatenate([[RF for i in range(len(fixed_seqs))], ['RANDOM_FMLM1' for i in range(len(fixed_seqs)) ]])
                 return pd.DataFrame(data), pd.DataFrame({'RFAM': labels, 'seed': seeds})
                 
         data.append(fixed_seqs)

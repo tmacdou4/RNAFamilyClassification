@@ -43,4 +43,7 @@ datapath = "data"
 
 #seqs = generate_based_on_family("RF00005", datapath=datapath)
 
-seqs = shuffle_seqs_in_family("RF00005", datapath = "data")
+#test = [[0,1,3,1,2,3],[1,2,3,1,2,3],[2,1,3,3,1,2]]
+test = "RF00001"
+
+seqs = markov_generate(test, datapath = "data")
