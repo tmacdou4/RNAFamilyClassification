@@ -171,6 +171,9 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
 
     return rand_seqs
 
+def shuffle_seq_in_family(RFAM_name, datapath = "../data"):
+    pass
+
 # markov_chain_generator
 def markov_chain_generator(input_seqs, n = 1, order = 0):
         pass
@@ -199,11 +202,17 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
 
         # random padding method
         elif method == 'RP':
-                fixed_seqs = None
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len, random="uniform")
 
         # nucshfl + zero padding method
+        # Tom: I interpreted this as being randomly shuffled nucleotides
+        # This is essentially equivalent to another approach I made a while ago which is
+        # to look at a family, generate random sequences by sampling from a pmf of how
+        # frequent each nucleotide is in a given family, and also sampling from a gaussian
+        # distribution of the sequence lengths
         elif method == 'NUCSCHFLZP':
-                fixed_seqs = None
+                seqs_index = generate_based_on_family(RF, datapath=datapath)
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len)
         
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
         elif method == 'FMLM1' and RF == target : 
