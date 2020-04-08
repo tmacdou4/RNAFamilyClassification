@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 import itertools
+import random
 
 
 
@@ -171,6 +172,13 @@ def generate_based_on_family(RFAM_name, datapath = "../data"):
 
     return rand_seqs
 
+def shuffle_seqs_in_family(RFAM_name, datapath = "../data"):
+    seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
+    data = seq_to_nt_ids(seqs)
+    shuffled_data = [random.sample(x, len(x)) for x in data]
+
+    return shuffled_data
+
 # markov_chain_generator
 def markov_chain_generator(input_seqs, n = 1, order = 0):
         pass
@@ -199,11 +207,17 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
 
         # random padding method
         elif method == 'RP':
-                fixed_seqs = None
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len, random="uniform")
 
         # nucshfl + zero padding method
+        # not sure what method this is supposed to be, so I added 2 options
+        # generated_based_on_family -> samples a sequence length from gaussian,
+        # then sample nucleotides to fill the sequences from the pmf of composition for that family
+        # shuffle_seqs_in_family -> for each sequence in the family, shuffle the sequence
         elif method == 'NUCSCHFLZP':
-                fixed_seqs = None
+                #seqs_index = generate_based_on_family(RF, datapath=datapath)
+                seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len)
         
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
         elif method == 'FMLM1' and RF == target : 
