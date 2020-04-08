@@ -34,11 +34,13 @@ datapath = "data"
 
 #labels['numeral'] = np.array(labels['RFAM'] == "RF00009", dtype = int)
 
-RFs = [['RF00005', 'RF00009']]
-
-data, labels = load_data(RFs, datapath=datapath, max_len = 500)
-
-print(data)
-print(labels)
+# RFs = [['RF00005', 'RF00009']]
+#
+# data, labels = load_data(RFs, datapath=datapath, max_len = 500)
+#
+# print(data)
+# print(labels)
 
 #seqs = generate_based_on_family("RF00005", datapath=datapath)
+
+seqs = shuffle_seqs_in_family("RF00005", datapath = "data")
