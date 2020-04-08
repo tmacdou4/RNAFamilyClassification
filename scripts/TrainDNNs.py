@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('Agg')
+import  matplotlib.pyplot as plt
 import time
 import itertools as it
 import pandas as pd
@@ -23,7 +26,7 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser()
 # parse arguments 
 parser.add_argument('-arch', dest = 'ARCH', default = [10, 2], nargs = 2, type = int, help = 'set the architecture of the 1 or 2 - layers DNN model. ex 100 in 1st , 2000 in second is typed : -arch 100 2000')
-parser.add_argument('-epochs',dest = 'EPOCHS', default = 10 , type = int, help = 'nb of max epochs')
+parser.add_argument('-epochs',dest = 'EPOCHS', default = 100 , type = int, help = 'nb of max epochs')
 parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0.2, help = 'L2 parametrization [0:no regularization]')
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
 parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'random seed')
@@ -61,7 +64,7 @@ for N in L:
     for a in combN :
         ARCHs.append(a)
 # SET ARCHs
-ARCHs = [[1000,1000]]
+ARCHs = [[5,5],[1000,1000]]
 # cycle through TASKS (4):
 for taskID in TASKS: 
         # cycle through architectures (1)
@@ -70,7 +73,7 @@ for taskID in TASKS:
             for rfID in RFs: 
                 # update some variables
                 target = rfID
-                modelID = 'WD{}'.format(args.WEIGHT_DECAY)
+                modelID = 'WD{}EP{}'.format(args.WEIGHT_DECAY, args.EPOCHS)
                 CLSFID = 'BIN'
                 
                 # loading data into data frame
@@ -96,13 +99,18 @@ for taskID in TASKS:
                 MODELSPECS_path = os.path.join(modelname, 'MODELSPECS')
                 MODELS_path = os.path.join(modelname, 'MODELS')
                 RES_path = os.path.join(modelname, 'OUT')
+                TRPLOTS_path = os.path.join(modelname, 'TRPLOTS')
                 assert_mkdir(SETS_path)
                 assert_mkdir(MODELSPECS_path)
                 assert_mkdir(MODELS_path)
-                assert_mkdir(RES_path) # HARDCODE
+                assert_mkdir(RES_path) 
+                assert_mkdir(TRPLOTS_path)
 
                 # define train function 
                 from train import train
+                # init fig, axes for plotting 
+                fig, axes = plt.subplots(ncols = 2, figsize = (20,10))
+                annotations = "" 
                 # foreach fold in xval (5)
                 for foldn in range(1 , args.XVAL + 1):
                     
@@ -131,6 +139,7 @@ for taskID in TASKS:
                         'TASKID': taskID, 
                         'MODID': modelID,
                         'RFID': rfID, 
+                        'FOLDID': foldn, 
                         'lossfn': torch.nn.BCELoss(),
                         'epochs': args.EPOCHS,
                         'levels' : max(labels['numeral']) + 1,
@@ -142,7 +151,7 @@ for taskID in TASKS:
                         'tr_proc_time': None,
                         'tst_acc' : None, 
                         'tst_auc' : None,
-                        'tst_l' : None
+                        'tst_l' : float('nan')
                         }
                     print('RFID {} (BINARY) TASK {} ARCH {} MODEL {} fold {} / {}'.format(rfID, taskID, ARCH, modelID, foldn, args.XVAL)) 
                     # store some static values 
@@ -189,6 +198,7 @@ for taskID in TASKS:
                     acc = out.argmax(dim = -1).detach().cpu().numpy() == TEST_Y.numeral
                     model_specs['tst_acc'] = float(acc.mean())
                     if len(np.unique(TEST_Y.numeral)) > 1: model_specs['tst_auc'] = metrics.roc_auc_score(y_true = TEST_Y.numeral, y_score = out[:,1].detach().cpu().numpy())
+                    else: model_specs['tst_auc'] = float('nan') 
                     # report Training in outfile
                     currDF =  pd.DataFrame(list(model_specs.values()), index = list(model_specs.keys())).T
                     # create outfile 
@@ -198,27 +208,39 @@ for taskID in TASKS:
                     outFile.write("## test yscores:" + ",".join([str(score) for score in out[:,1].detach().cpu().numpy()]) + "\n")    
                     currDF.to_csv(outFile, sep = '\t')
                     outFile.close()
-
-                    # TO DOS 
-                    # 1) SET VIM TO FTP SAVE FILES FROM MAC
-                    # 2) REPORT TEST PERFORMANCE
-                    # 3) DETECT PERFORMANCE BOTTLENECKS  
-                    # 4) INFLUENCE OF SEED LENGTH 
-                         # RANDOM SEEDS EXPERIMENTS 
-                         # X SHUFFLE IN FAMILY
-                         # X RANDOM NEGATIVE SEEDS GC% AT% 
-                         # ---> RANDOM PADDING USING MARKOV 0 with GC% from whole dataset
-
-                    # 5) NUC CONTENT
-                        # X RANDOM PERMUTATIONS
-                        # MARKOV SEQ ORDER 0 %GC by family
-
-                    # 6) DINUC CONTENT 
-                        # MARKOV SEQ ORDER 1 %DINUC by family
-                        # With D-ORB
-                            
-                        # Benchmark Infernal 
-                        # Benchmark DORB
-
-                    # 7) WORK MULTICLASS PREDICTION
-                    # 8) WORK DIFFERENT MODEL LAYOUTS (CNN, RNN, LSTM)
+                    # plot training curves and final accuracies on test
+                    nbsteps = len(model_specs['tr_l'])
+                    skip =10 
+                    losses = model_specs['tr_l'][np.arange(1,nbsteps,skip)]
+                    accuracies = model_specs['tr_acc'][np.arange(1, nbsteps,skip)]
+                    aucs = model_specs['tr_auc'][np.arange(1, nbsteps,skip)]
+                    model_specs['tr_l'] = model_specs['tr_l'][-1]
+                    model_specs['tr_acc'] = model_specs['tr_acc'][-1]
+                    model_specs['tr_auc'] = model_specs['tr_auc'][-1]
+                    # PLOT RESULTS 
+                    # plot | tr_l | tr_acc | tr_auc
+                    axes[0].plot(np.arange(len(losses)) * skip, losses, lw = 1, c = 'grey')
+                    axes[1].plot(np.arange(len(aucs)) * skip, aucs, lw = 1, c = 'b')
+                    # annotate last tr_l, _tr_acc, tr_auc, tr_proc_time
+                    auc_annotm = [str(e).zfill(5) for e in np.round([model_specs['tr_acc'], model_specs['tr_auc'] , model_specs['tst_acc'], model_specs['tst_auc']], 3)]
+                    loss_annotm = [str(e).zfill(5) for e in np.round([model_specs['tr_l'], model_specs['tr_proc_time'] , model_specs['tst_l']], 3)]
+                    
+                    auc_annots = "FOLD NB {} | TR. ACC: {} | TR. AUC:{} | TST. ACC: {} | TST. AUC: {}".format(foldn,auc_annotm[0], auc_annotm[1], auc_annotm[2], auc_annotm[3])
+                    loss_annots = "FOLD NB {} | TR. LOSS: {} | TR. PROC TIME:{} | TST. L: {}".format(foldn,loss_annotm[0], loss_annotm[1], loss_annotm[2])
+                    # annotate/scatter tst_l, tst_acc, tst_auc
+                    axes[0].scatter(x = [nbsteps], y = [model_specs['tr_l']], s = 5, label = loss_annots)
+                    axes[1].scatter(x = [nbsteps], y = [model_specs['tr_auc']], s = 5,  c= 'b')
+                    axes[1].scatter(x = [nbsteps], y = [model_specs['tst_auc']], s = 5, label = auc_annots)
+                    axes[0].legend()
+                    axes[1].legend()
+                    # xlabel = gradient steps
+                    axes[0].set_xlabel('gradient steps') 
+                    axes[0].set_ylabel('BCEloss') 
+                    axes[1].set_xlabel('gradient steps') 
+                    axes[1].set_ylabel('auc') 
+                    # title the figure with REFID
+                    REF ="_".join(np.array([ model_specs['RFID'], model_specs['ARCHID'], model_specs['MODID']], dtype = str))
+                    fig.suptitle(REF)
+                    # make outpath 
+                    outpath = os.path.join(TRPLOTS_path, REF + '.png')
+                    plt.savefig(outpath, dpi = 300)

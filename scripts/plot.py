@@ -74,8 +74,9 @@ RESULTS = pd.concat(frames)
 print ('collected {} / {} frames '.format(RESULTS.shape[0], n))
 # compute aggregated AUC from all tests folds
 
+pdb.set_trace()
 # group by MODEL
-
+RESULTS = RESULTS.group_by(['RFID', 'TASKID', 'ARCHID'])
 # update RESULTS
 
 # set a RES filepath
@@ -88,6 +89,9 @@ for j, ARCHID in ARCHs:
         for i, ((ref, roc), AUC) in enumerate(zip(ROC,AGG_AUC)):
             axes[i][j].plot(roc['FPR'], roc['TPR'])
             axes[i][j].set_title('REF: {} | AUC: {}'.format(ref, round(AUC, 3)))
+# save data table
+
+# save figure
 plt.savefig(os.path.join(RESpath, 'ALL_RES.png'), dpi = 300)
 
 
