@@ -23,7 +23,7 @@ DATApath = 'data'
 RESpath = os.path.join(args.MODELlayout, 'OUT')
 RFs =[path for path in os.listdir(DATApath) if os.path.isdir(os.path.join(DATApath,path))]
 RFIDs = np.setdiff1d(RFs, args.exclRFAM)
-ARCHs = ["5.5"] # ,"1000.1000"]
+ARCHs = ["5.5", "1000.1000"]
 MODELID = "WD0.2"
 CLFID = "BIN"
 model_layout = 'DNN'
@@ -84,9 +84,10 @@ util.assert_mkdir(RESpath)
 # start plotting
 # first TEST AUC scatter by RFid 
 fig, axes = plt.subplots(figsize = (5, 5 * len(RFIDs)),nrows = len(RFIDs))
-for i, ((ref, roc), AUC) in enumerate(zip(ROC,AGG_AUC)):
-    axes[i].plot(roc['FPR'], roc['TPR'])
-    axes[i].set_title('REF: {} | AUC: {}'.format(ref, round(AUC, 3)))
+for j, ARCHID in ARCHs:
+        for i, ((ref, roc), AUC) in enumerate(zip(ROC,AGG_AUC)):
+            axes[i][j].plot(roc['FPR'], roc['TPR'])
+            axes[i][j].set_title('REF: {} | AUC: {}'.format(ref, round(AUC, 3)))
 plt.savefig(os.path.join(RESpath, 'ALL_RES.png'), dpi = 300)
 
 
