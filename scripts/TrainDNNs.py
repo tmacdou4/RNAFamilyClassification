@@ -50,7 +50,7 @@ seq_len = 600 # how to get the optimal number efficiently ?
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
 # TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
 # only ZP implemented so far
-TASKS = ['ZP']
+TASKS = ['RP']
 
 # generate architectures
 maxNodes = args.ARCH[0]
@@ -239,7 +239,7 @@ for taskID in TASKS:
                     axes[1].set_xlabel('gradient steps') 
                     axes[1].set_ylabel('auc') 
                     # title the figure with REFID
-                    REF ="_".join(np.array([ model_specs['RFID'], model_specs['ARCHID'], model_specs['MODID']], dtype = str))
+                    REF ="_".join(np.array([model_specs['RFID'], taskID, model_specs['ARCHID'], model_specs['MODID']], dtype = str))
                     fig.suptitle(REF)
                     # make outpath 
                     outpath = os.path.join(TRPLOTS_path, REF + '.png')

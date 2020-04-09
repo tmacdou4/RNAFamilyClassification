@@ -262,10 +262,16 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
         # zero padding method
         if method == 'ZP': 
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
+                data.append(fixed_seqs)
+                labels.append([RF for i in range(len(fixed_seqs))])
+                seeds.append(seqs)
 
         # random padding method
         elif method == 'RP':
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len, random="uniform")
+                data.append(fixed_seqs)
+                labels.append([RF for i in range(len(fixed_seqs))])
+                seeds.append(seqs)
 
         # nucshfl + zero padding method
         # not sure what method this is supposed to be, so I added 2 options
@@ -276,6 +282,9 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 #seqs_index = generate_based_on_family(RF, datapath=datapath)
                 seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len)
+                data.append(fixed_seqs)
+                labels.append([RF for i in range(len(fixed_seqs))])
+                seeds.append(seqs)
         
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
         elif method == 'FMLM1' and RF == target:
@@ -289,10 +298,6 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 data = np.concatenate([fixed_seqs,rand_fixed_seqs])
                 labels = np.concatenate([[RF for i in range(len(fixed_seqs))], ['RANDOM_FMLM1' for i in range(len(fixed_seqs)) ]])
                 return pd.DataFrame(data), pd.DataFrame({'RFAM': labels, 'seed': seeds})
-                
-        data.append(fixed_seqs)
-        labels.append([RF for i in range(len(fixed_seqs))])
-        seeds.append(seqs)
     
     seeds = np.concatenate(seeds)
     data = np.concatenate(data)    
