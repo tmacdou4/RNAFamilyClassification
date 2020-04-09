@@ -175,7 +175,8 @@ def generate_based_on_family(RFAM_name, datapath = "../data", order=0):
 # Only does first and second order. Takes an RFAM name
 # and returns a list of list of nucleotide id's where each one is the same length
 # the the corresponding real sequence but the content is randomized with a 0th or
-# 1st order markov method.
+# 1st order markov method. Only considers the 4 main base pairs and discards the rest.
+# (They're not that common in this dataset although they do appear)
 def markov_generate(RFAM_name, datapath = "../data", order=1):
     seqs = seq_loader(datapath, RFAM_name, "fasta_unaligned.txt")
     data = seq_to_nt_ids(seqs)
@@ -185,9 +186,7 @@ def markov_generate(RFAM_name, datapath = "../data", order=1):
     nt_vocab_size = 4
 
     prob_grid_0 = np.zeros(nt_vocab_size)
-
     prob_grid_1 = np.zeros((nt_vocab_size, nt_vocab_size))
-
     prob_grid_2 = np.zeros((nt_vocab_size, nt_vocab_size, nt_vocab_size))
 
     for l in data:
@@ -286,16 +285,6 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 rand_seqs_index = markov_generate(target, datapath="data", order=1)
                 rand_fixed_seqs = pad_to_fixed_length(rand_seqs_index, max_length=max_len)
 
-                # Old, unfinished code for markov generation
-                # # pad RFAM samples
-                # fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len) # fix the max manually ? to be fixed
-                # # store nseqs
-                # nseqs = len(fixed_seqs)
-                # # generate random seqs (negative samples)
-                # random_seqs = markov_chain_generator(seqs, n = nseqs, order = 1)
-                # rdm_seqs_index = seq_to_nt_ids(random_seqs)
-                # rdm_fixed_seqs = pad_to_fixed_length(random_seqs, max_length = max_len)
-                #
                 seeds = np.concatenate([seqs,["RAND" for _ in range(len(rand_fixed_seqs))]])
                 data = np.concatenate([fixed_seqs,rand_fixed_seqs])
                 labels = np.concatenate([[RF for i in range(len(fixed_seqs))], ['RANDOM_FMLM1' for i in range(len(fixed_seqs)) ]])
