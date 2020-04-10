@@ -285,7 +285,14 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 data.append(fixed_seqs)
                 labels.append([RF for i in range(len(fixed_seqs))])
                 seeds.append(seqs)
-        
+
+        elif method == 'NUCSCHFLRP':
+                seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
+                fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len, random="uniform")
+                data.append(fixed_seqs)
+                labels.append([RF for i in range(len(fixed_seqs))])
+                seeds.append(seqs)
+
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
         elif method == 'FMLM1' and RF == target:
 

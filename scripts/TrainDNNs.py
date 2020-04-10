@@ -50,7 +50,7 @@ seq_len = 600 # how to get the optimal number efficiently ?
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
 # TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
 # only ZP implemented so far
-TASKS = ['RP']
+TASKS = ['ZP']
 
 # generate architectures
 maxNodes = args.ARCH[0]
