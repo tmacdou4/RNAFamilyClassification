@@ -154,6 +154,7 @@ for taskID in TASKS:
                         'tst_l' : float('nan')
                         }
                     print('RFID {} (BINARY) TASK {} ARCH {} MODEL {} fold {} / {}'.format(rfID, taskID, ARCH, modelID, foldn, args.XVAL)) 
+                    pdb.set_trace()
                     # store some static values 
                     nsamples = model_specs['nseeds']
                     test_size = model_specs['test_size']
@@ -161,7 +162,7 @@ for taskID in TASKS:
                     MODELFULLNAME = '_'.join(IDs)
                     # split train and test
                     # prepare data splitting    
-                    samplesID = range(foldn * test_size , min((foldn + 1) * test_size, nsamples))
+                    samplesID = range((foldn - 1) * test_size , min((foldn ) * test_size, nsamples))
                     
                     TEST_X = data.iloc[samplesID]
                     TEST_Y = labels.iloc[samplesID]

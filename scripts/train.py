@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from sklearn import metrics
 import pdb
 
-def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
+def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 1, debug = False):
     epochs = model_specs['epochs']
     wd = model_specs['wd']
     lr = model_specs['lr']
@@ -34,7 +34,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
             training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | AUC {} \t'.format(minibatch_count, gr_steps * epochs, round(a, 4) * 100, round(l,3), round(auc, 3))
             CM_reporter = 'TP {}, TN {}, FP {} , FN {}'.format(tp, tn, fp, fn)
             # loss, accuracy, and other performance metrics
-            if minibatch_count % reporter_step== 0:
+            if minibatch_count % reporter_step== 0 and debug:
                     print(training_reporter + CM_reporter)
             # gradient steps 
             optimizer.zero_grad()
