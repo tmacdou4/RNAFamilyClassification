@@ -278,7 +278,7 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
         # generated_based_on_family -> samples a sequence length from gaussian,
         # then sample nucleotides to fill the sequences from the pmf of composition for that family
         # shuffle_seqs_in_family -> for each sequence in the family, shuffle the sequence
-        elif method == 'NUCSCHFLZP':
+        elif method == 'NUCSHFLZP':
                 #seqs_index = generate_based_on_family(RF, datapath=datapath)
                 seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length = max_len)
@@ -286,7 +286,7 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 labels.append([RF for i in range(len(fixed_seqs))])
                 seeds.append(seqs)
 
-        elif method == 'NUCSCHFLRP':
+        elif method == 'NUCSHFLRP':
                 seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len, random="uniform")
                 data.append(fixed_seqs)

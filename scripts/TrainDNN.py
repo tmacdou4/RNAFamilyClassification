@@ -93,6 +93,7 @@ from train import train
 # init fig, axes for plotting 
 fig, axes = plt.subplots(ncols = 2, figsize = (20,10))
 annotations = "" 
+frames = []
 # foreach fold in xval (5)
 for foldn in range(1 , args.XVAL + 1):
     
@@ -136,7 +137,6 @@ for foldn in range(1 , args.XVAL + 1):
         'tst_l' : float('nan')
         }
     print('RFID {} (BINARY) TASK {} ARCH {} MODEL {} fold {} / {}'.format(rfID, taskID, ARCH, modelID, foldn, args.XVAL)) 
-    pdb.set_trace()
     # store some static values 
     nsamples = model_specs['nseeds']
     test_size = model_specs['test_size']
@@ -148,10 +148,6 @@ for foldn in range(1 , args.XVAL + 1):
     
     TEST_X = data.iloc[samplesID]
     TEST_Y = labels.iloc[samplesID]
-    # write TESTSET to disk
-    print('writing test set seed {} fold {} / {} ...'.format(args.SEED, foldn, args.XVAL))
-    TEST_SET = data.iloc[samplesID].join(labels.iloc[samplesID])
-    TEST_SET.to_csv(os.path.join(SETS_path, 'SEED{}_F{}_{}.csv'.format(args.SEED, foldn, args.XVAL)))
     TRAIN_X = data.iloc[np.setdiff1d(labels.index, samplesID)]
     TRAIN_Y = labels.iloc[np.setdiff1d(labels.index, samplesID)]
     # init dataset objects 
@@ -174,17 +170,18 @@ for foldn in range(1 , args.XVAL + 1):
     # update model_specs with various reports
     model_specs['tr_proc_time'] = time.clock() - startime
     model_specs['ARCH'] = ".".join([str(e) for e in model_specs['ARCH']])
-    # save model_specs dict under the name MODELFULLNAME.specs 
-    with open(os.path.join(MODELSPECS_path, '{}.specs'.format(MODELFULLNAME)), 'w') as o : o.write(str(model_specs)) # to be updated 
     # test
+    model.eval()
     out = model(torch.Tensor(TEST_X.values).cuda(args.DEVICE))
+    TEST_Y['yscore'] = out.detach().cpu().numpy()[:,1] 
+    frames.append(TEST_Y)
     acc = out.argmax(dim = -1).detach().cpu().numpy() == TEST_Y.numeral
     model_specs['tst_acc'] = float(acc.mean())
     if len(np.unique(TEST_Y.numeral)) > 1: model_specs['tst_auc'] = metrics.roc_auc_score(y_true = TEST_Y.numeral, y_score = out[:,1].detach().cpu().numpy())
     else: model_specs['tst_auc'] = float('nan') 
     # store training curves and final accuracies on train
     nbsteps = len(model_specs['tr_l'])
-    skip =10 
+    skip = 1 
     losses = model_specs['tr_l'][np.arange(1,nbsteps,skip)]
     accuracies = model_specs['tr_acc'][np.arange(1, nbsteps,skip)]
     aucs = model_specs['tr_auc'][np.arange(1, nbsteps,skip)]
@@ -199,17 +196,10 @@ for foldn in range(1 , args.XVAL + 1):
     print(loss_annots)
     print(auc_annots)
     # report Training in outfile
-    currDF =  pd.DataFrame(list(model_specs.values()), index = list(model_specs.keys())).T
-    # create outfile 
-    outFile = open(os.path.join(RES_path, MODELFULLNAME + ".csv"), 'w')
-    # insert comments
-    outFile.write("##" + str(args) + "\n")
-    outFile.write("## test yscores:" + ",".join([str(score) for score in out[:,1].detach().cpu().numpy()]) + "\n")    
-    outFile.write("## training loss (by steps) :" + ",".join(np.array(losses, dtype = str)))
-    outFile.write("## training auc (by steps) :" + ",".join(np.array(aucs, dtype = str)))
-    outFile.write("## training accuracies (by steps) :" + ",".join(np.array(accuracies, dtype = str)))
-    currDF.to_csv(outFile, sep = '\t')
-    outFile.close()
+    pd.DataFrame({'tr_loss': losses, 'tr_acc': accuracies, 'tr_auc': aucs}).to_csv(os.path.join(RES_path,MODELFULLNAME + ".tr_curves"))
+    # save model_specs dict under the name MODELFULLNAME.specs 
+    with open(os.path.join(MODELSPECS_path, '{}.specs'.format(MODELFULLNAME)), 'w') as o : o.write(str(model_specs)) # to be updated 
+    
     # PLOT RESULTS 
     # plot | tr_l | tr_acc | tr_auc
     axes[0].plot(np.arange(len(losses)) * skip, losses, lw = 1, c = 'grey')
@@ -232,3 +222,6 @@ for foldn in range(1 , args.XVAL + 1):
     # make outpath 
     outpath = os.path.join(TRPLOTS_path, REF + '.png')
     plt.savefig(outpath, dpi = 300)
+RES = pd.concat(frames)
+AGG_AUC = metrics.roc_auc_score(y_true = RES.numeral , y_score = RES.yscore)
+RES.to_csv(os.path.join(RES_path, MODELFULLNAME + "_AGG_AUC_{}.scores".format(round(AGG_AUC,4))))
