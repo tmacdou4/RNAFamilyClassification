@@ -30,12 +30,7 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
             l = float(loss_val.mean())
             conf_mat = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(), labels = np.arange(out.size(-1), dtype=int))
             yscores = np.exp(out.detach().cpu().numpy())
-            #auc = metrics.roc_auc_score(y_true = y.detach().squeeze().long().cpu().numpy(), y_score = yscores, multi_class='ovr')
-            #  print ('gradient step [ {} / {} ]'.format(n, model_specs['gr_steps']))
-            auc = 0
-            training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {} | AUC {} \t'.format(minibatch_count, gr_steps * epochs, round(a, 4) * 100, round(l,3), round(auc, 3))
-            #CM_reporter = 'TP {}, TN {}, FP {} , FN {}'.format(tp, tn, fp, fn)
-            # loss, accuracy, and other performance metrics
+            training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {}\t'.format(minibatch_count, gr_steps * epochs, round(a * 100, 3), round(l,3))
             if minibatch_count % reporter_step== 0:
                     print(training_reporter)
             # gradient steps 
@@ -46,8 +41,6 @@ def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
             minibatch_count += 1
             training_loss.append(l)
             training_acc.append(a)
-            training_auc.append(auc)
     # update model_specs
     model_specs['tr_l'] = np.array(training_loss)
-    model_specs['tr_acc'] = np.array(training_acc)
-    model_specs['tr_auc'] = np.array(training_auc)
+    model_specs['tr_acc'] = np.array(training_acc) * 100
