@@ -68,21 +68,19 @@ for N in L:
 ARCHs = [[5,5]]
 # cycle through TASKS (4):
 for taskID in TASKS: 
-        # cycle through architectures (1)
+        # cycle through architectures
         for ARCH  in ARCHs:
             # update some variables
             rfID = "MultiClass"
             target = None
             modelID = 'WD{}EP{}'.format(args.WEIGHT_DECAY, args.EPOCHS)
             CLSFID = 'MUL'
-                
+
             # loading data into data frame
             data, labels = load_data_in_df(target, RFs, taskID, datapath = datapath, max_len = seq_len)
             np.random.seed(args.SEED) # set numpy seed for data shuffle
-            # multiclass ONLY
             numeric_labels = dict(zip(np.unique(labels['RFAM']), np.arange(len(np.unique(labels['RFAM'])))))
             labels['numeral'] = [numeric_labels[l] for l in labels['RFAM']]
-            #labels['numeral'] = np.array(labels['RFAM'] == target, dtype = int)
             torch.manual_seed(args.SEED) # set torch seed for model initialization
             rnd_idxs = np.arange(labels.shape[0]) # get ids
             np.random.shuffle(rnd_idxs)    # shuffles ids
@@ -93,7 +91,7 @@ for taskID in TASKS:
             test_size = int(float(nseeds) / args.XVAL)
             train_size = nseeds - test_size
             gr_steps = int(float(train_size) / bs) + 1
-                
+
             # prepare_outfile_paths
             SETS_path = os.path.join(modelname, 'SETS')
             MODELSPECS_path = os.path.join(modelname, 'MODELSPECS')
