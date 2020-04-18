@@ -313,29 +313,6 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
     labels_df = pd.DataFrame({'RFAM': labels, 'seed': seeds})
     return data_df, labels_df
 
-#Takes as input 1) a dictionary of default values - a base h-param grid
-#and 2) a dictionary of lists - the variable h-params
-#returns a list of dictionaries, corresponding to the complete hyperparameter grid, with the
-#variable parameters changed and the default parameters in all other places
-#Ex:
-#   default_dict = {a: 5, b: "banana", c: int}
-#   variable_dict = {a: [4,5], b:["orange","banana"]}
-#   output =   [{a: 4, c: "banana", d: int},
-#               {a: 4, c: "orange", d: int},
-#               {a: 5, c: "banana", d: int},
-#               {a: 5, c: "orange", d: int}]
-#
-def grid_generator(default_dict, variable_dict):
-    key, value = zip(*variable_dict.items())
-    all_dicts = [dict(zip(key, value)) for value in itertools.product(*value)]
-    for key in default_dict.keys():
-        if key not in variable_dict.keys():
-            for setup in all_dicts:
-                setup[key] = default_dict[key]
-
-    return all_dicts
-
-
 #Takes an RF structure list (see below), a datapath string and a max_len int
 #Returns 2 data frames : one for data, with indexes and NT id's and one for
 #Labels, with RFAM ID ["RFAM"], Seed sequence, ["seed"] and class label, "numeral"
@@ -364,7 +341,7 @@ def grid_generator(default_dict, variable_dict):
 # RF00001 and RF01865 combined into one class, and RF01865 as the third class
 
 #All of the other combinations of these are possible
-def load_data(RF_structure, datapath="data", max_len=500):
+def load_data(target, RF_structure, taskID, datapath="data", max_len=500):
     data = []
     labels = []
     labels_numeral = []
@@ -381,9 +358,12 @@ def load_data(RF_structure, datapath="data", max_len=500):
                     first_fam = fam
                 if fam not in seen_fams:
                     seen_fams.add(fam)
+
+                    #call single family loader
                     seqs = seq_loader(datapath, fam, 'fasta_unaligned.txt')
                     seqs_index = seq_to_nt_ids(seqs)
                     fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+
                     data.append(fixed_seqs)
                     labels.append([fam for _ in range(len(fixed_seqs))])
                     labels_numeral.append([i for _ in range(len(fixed_seqs))])
@@ -392,9 +372,13 @@ def load_data(RF_structure, datapath="data", max_len=500):
         elif klass == "REST":
             for rf in all_RFs:
                 if rf not in seen_fams:
+
+                    #call single family loader
                     seqs = seq_loader(datapath, rf, 'fasta_unaligned.txt')
                     seqs_index = seq_to_nt_ids(seqs)
                     fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+
+
                     data.append(fixed_seqs)
                     labels.append([rf for _ in range(len(fixed_seqs))])
                     labels_numeral.append([i for _ in range(len(fixed_seqs))])
@@ -415,9 +399,13 @@ def load_data(RF_structure, datapath="data", max_len=500):
         elif klass == "ALL":
             for rf in all_RFs:
                 if rf not in seen_fams:
+
+                    #call single family loader
                     seqs = seq_loader(datapath, rf, 'fasta_unaligned.txt')
                     seqs_index = seq_to_nt_ids(seqs)
                     fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+
+
                     data.append(fixed_seqs)
                     labels.append([rf for _ in range(len(fixed_seqs))])
                     labels_numeral.append([i for _ in range(len(fixed_seqs))])
@@ -445,3 +433,53 @@ def load_data(RF_structure, datapath="data", max_len=500):
     data_df = pd.DataFrame(data)
     labels_df = pd.DataFrame({'RFAM': labels, 'seed': seeds, 'numeral': labels_numeral})
     return data_df, labels_df
+
+
+def load_single_family(RF, task, datapath="data", max_len=500):
+    if task == 'ZP':
+        seqs = seq_loader(datapath, RF, 'fasta_unaligned.txt')
+        seqs_index = seq_to_nt_ids(seqs)
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+        return fixed_seqs
+
+    elif task == 'RP':
+        seqs = seq_loader(datapath, RF, 'fasta_unaligned.txt')
+        seqs_index = seq_to_nt_ids(seqs)
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len, random="uniform")
+        return fixed_seqs
+
+    elif task == 'NUCSHFLZP':
+        seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len)
+        return fixed_seqs
+
+    elif task == 'NUCSHFLRP':
+        seqs_index = shuffle_seqs_in_family(RF, datapath=datapath)
+        fixed_seqs = pad_to_fixed_length(seqs_index, max_length=max_len, random="uniform")
+        return fixed_seqs
+
+    elif task == 'FMLM1':
+        pass
+
+#Takes as input 1) a dictionary of default values - a base h-param grid
+#and 2) a dictionary of lists - the variable h-params
+#returns a list of dictionaries, corresponding to the complete hyperparameter grid, with the
+#variable parameters changed and the default parameters in all other places
+#Ex:
+#   default_dict = {a: 5, b: "banana", c: int}
+#   variable_dict = {a: [4,5], b:["orange","banana"]}
+#   output =   [{a: 4, c: "banana", d: int},
+#               {a: 4, c: "orange", d: int},
+#               {a: 5, c: "banana", d: int},
+#               {a: 5, c: "orange", d: int}]
+#
+def grid_generator(default_dict, variable_dict):
+    key, value = zip(*variable_dict.items())
+    all_dicts = [dict(zip(key, value)) for value in itertools.product(*value)]
+    for key in default_dict.keys():
+        if key not in variable_dict.keys():
+            for setup in all_dicts:
+                setup[key] = default_dict[key]
+
+    return all_dicts
+

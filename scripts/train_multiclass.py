@@ -1,46 +1,105 @@
 from utility import *
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
+import torch
 from sklearn import metrics
 import numpy as np
 import pdb
 
-def train (model, dataloader, model_specs, device = 'cuda:0', foldn = 0):
+def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
+
+    if mode=='TRAIN':
+        model.train()
+    else:
+        model.eval()
+
+    losses = []
+    accuracies = []
+    aucs = []
+    conf_mats = []
+
+    for x, y in dl:
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
+
+        model.zero_grad()
+
+        out = model(x).to(device)
+
+        loss = loss_fn(out, y.squeeze().long())
+        acc = torch.eq(out.argmax(dim=-1), y.long().flatten()).float().view(-1, 1)
+        a = float(acc.mean().detach().cpu().numpy())
+
+        yscores = np.exp(out.detach().cpu().numpy())
+
+        auc = metrics.roc_auc_score(y_true=y.detach().cpu().numpy(), y_score=yscores[:, 1])
+
+        #conf_mat = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(),
+        #                                  labels=np.arange(out.size(-1), dtype=int))
+
+
+        conf_mat = metrics.confusion_matrix(y.squeeze().long().detach().cpu().numpy(), torch.exp(out).argmax(dim=-1).detach().cpu().numpy(),
+                                           labels=np.arange(out.size(-1), dtype=int))
+
+
+        losses.append(float(loss))
+        accuracies.append(a)
+        aucs.append(auc)
+        conf_mats.append(conf_mat)
+
+        #update parameters only if training
+        if mode=='TRAIN':
+            loss.backward()
+            optimizer.step()
+
+    loss_out = np.array(losses).mean()
+    acc_out = np.array(accuracies).mean() * 100
+    auc_out = np.array(aucs).mean()
+    conf_mat_out = np.array()
+
+    return loss_out, acc_out, auc_out
+
+
+def train (model, tr_dataloader, val_dataloader, model_specs, device = 'cuda:0', foldn = 0):
     epochs = model_specs['epochs']
     wd = model_specs['wd']
     lr = model_specs['lr']
-    loss = model_specs['lossfn']
+    loss_fn = model_specs['lossfn']
     gr_steps = model_specs['gr_steps']
     optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = wd)
+
     # levels_sorted_by_index = sorted([(index, c) for (c, index) in model_specs['levels'].items()])
     # levels = [str(c)[:10] for (ind, c) in levels_sorted_by_index]
+
     training_loss, training_acc, training_auc = [],[],[]
-    minibatch_count = 0
-    for i  in range(epochs):
-        reporter_step = 15
-        # CM = np.zeros((model_specs['output_size'], model_specs['output_size']))
-        for x,y in dataloader:
-            x = Variable(x).to(device)
-            y = Variable(y).to(device)
-            # computational graph
-            out = model(x).to(device)
-            loss_val = loss(out, y.squeeze().long()).view(-1, 1).expand_as(out)
-            acc =torch.eq(out.argmax(dim = -1), y.long().flatten()).float().view(-1,1)
-            a = float(acc.mean().detach().cpu().numpy())
-            l = float(loss_val.mean())
-            conf_mat = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(), labels = np.arange(out.size(-1), dtype=int))
-            yscores = np.exp(out.detach().cpu().numpy())
-            training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#','.'][int(j > int((i + 1.) * 10/epochs))] for j in range(10) ]) + '] [{}/{}] acc = {} % | loss = {}\t'.format(minibatch_count, gr_steps * epochs, round(a * 100, 3), round(l,3))
-            if minibatch_count % reporter_step== 0:
-                    print(training_reporter)
-            # gradient steps 
-            optimizer.zero_grad()
-            # computational graph for efficiency
-            loss_val.mean().backward()
-            optimizer.step()
-            minibatch_count += 1
-            training_loss.append(l)
-            training_acc.append(a)
+    validation_loss, validation_acc, validation_auc = [], [], []
+
+    for i in range(epochs):
+
+        tr_loss, tr_acc, tr_auc = run_epoch(model, tr_dataloader, loss_fn, optimizer, device, "TRAIN")
+
+        training_loss.append(tr_loss)
+        training_acc.append(tr_acc)
+        training_auc.append(tr_auc)
+
+        training_reporter = 'FOLD {} \tTRAIN ['.format(str(foldn).zfill(3)) + ''.join([['#', '.'][int(j > int((i + 1.) * 10 / epochs))] for j in range(10)]) + '] [{}/{}] Avg. acc = {} % | Avg. loss = {}\t'.format(i+1, epochs, round(tr_acc, 3), round(tr_loss, 3))
+
+        print(training_reporter)
+
+        val_loss, val_acc, val_auc = run_epoch(model, val_dataloader, loss_fn, optimizer, device, "VALID")
+
+        validation_loss.append(val_loss)
+        validation_acc.append(val_acc)
+        validation_auc.append(val_auc)
+
+        validation_reporter = 'FOLD {} \tVALID ['.format(str(foldn).zfill(3)) + ''.join([['#', '.'][int(j > int((i + 1.) * 10 / epochs))] for j in range(10)]) + '] [{}/{}] Avg. acc = {} % | Avg. loss = {}\t'.format(i+1, epochs, round(val_acc, 3), round(val_loss, 3))
+
+        print(validation_reporter)
+
     # update model_specs
     model_specs['tr_l'] = np.array(training_loss)
-    model_specs['tr_acc'] = np.array(training_acc) * 100
+    model_specs['tr_acc'] = np.array(training_acc)
+    model_specs['val_l'] = np.array(validation_loss)
+    model_specs['val_acc'] = np.array(validation_acc)
+    model_specs['tr_auc'] = np.array(training_auc)
+    model_specs['val_auc'] = np.array(validation_auc)
