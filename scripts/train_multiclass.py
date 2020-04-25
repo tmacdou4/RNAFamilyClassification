@@ -32,20 +32,20 @@ def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
 
         yscores = np.exp(out.detach().cpu().numpy())
 
-        auc = metrics.roc_auc_score(y_true=y.detach().cpu().numpy(), y_score=yscores[:, 1])
+        #auc = metrics.roc_auc_score(y_true=y.detach().cpu().numpy(), y_score=yscores[:, 1])
 
         #conf_mat = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(),
         #                                  labels=np.arange(out.size(-1), dtype=int))
 
 
-        conf_mat = metrics.confusion_matrix(y.squeeze().long().detach().cpu().numpy(), torch.exp(out).argmax(dim=-1).detach().cpu().numpy(),
-                                           labels=np.arange(out.size(-1), dtype=int))
+        #conf_mat = metrics.confusion_matrix(y.squeeze().long().detach().cpu().numpy(), torch.exp(out).argmax(dim=-1).detach().cpu().numpy(),
+        #                                   labels=np.arange(out.size(-1), dtype=int))
 
 
         losses.append(float(loss))
         accuracies.append(a)
-        aucs.append(auc)
-        conf_mats.append(conf_mat)
+        #aucs.append(auc)
+        #conf_mats.append(conf_mat)
 
         #update parameters only if training
         if mode=='TRAIN':
@@ -55,7 +55,7 @@ def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
     loss_out = np.array(losses).mean()
     acc_out = np.array(accuracies).mean() * 100
     auc_out = np.array(aucs).mean()
-    conf_mat_out = np.array()
+    #conf_mat_out = np.array()
 
     return loss_out, acc_out, auc_out
 

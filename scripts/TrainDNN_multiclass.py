@@ -36,6 +36,7 @@ parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'rand
 parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help = 'device ex cuda:0')
 parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, FMLM1]')
 parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, help = 'RFAM identifier to predict from seed')
+parser.add_argument('-classification', dest = 'CLSFID', default='BIN', type = str, help ='BIN for binary classification, MUL for multiclass classification')
 
 args = parser.parse_args()
 
@@ -54,7 +55,7 @@ seq_len = 400 # how to get the optimal number efficiently ?
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))]
 # update some variables
 modelID = 'WD{}_EP{}'.format(args.WEIGHT_DECAY, args.EPOCHS)
-clsfID = 'BIN'
+clsfID = args.CLSFID
 taskID = args.TASK
 target = args.TARGET
 ARCH = args.ARCH
@@ -193,7 +194,7 @@ for foldn in range(1 , args.XVAL + 1):
     val_losses = model_specs['val_l']
     val_accuracies = model_specs['val_acc']
     val_auc = model_specs['val_auc']
-    total_conf_matrix += model_specs['conf_mat']
+    #total_conf_matrix += model_specs['conf_mat']
     
     acc_report = "FOLD NUMBER {} | FINAL TRAINING ACCURACY: {} | VALIDATION ACCURACY: {}".format(foldn, round(tr_accuracies[-1], 3), round(val_accuracies[-1], 3))
     loss_report = "FOLD NUMBER {} | FINAL TRAINING LOSS: {} | VALIDATION LOSS: {}".format(foldn, round(tr_losses[-1], 3), round(val_losses[-1], 3))
@@ -210,18 +211,18 @@ for foldn in range(1 , args.XVAL + 1):
     
     # PLOT RESULTS 
     # plot | tr_l | tr_acc | tr_auc
-    axes[0,0].plot(np.arange(len(tr_losses)), tr_losses, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
-    axes[0,0].plot(np.arange(len(val_losses)), val_losses, lw = 1, label = "VALID, FOLD {}".format(foldn))
-    axes[0,1].plot(np.arange(len(tr_accuracies)), tr_accuracies, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
-    axes[0,1].plot(np.arange(len(val_accuracies)), val_accuracies, lw = 1, label = "VALID, FOLD {}".format(foldn))
+    axes[0, 0].plot(np.arange(len(tr_losses)), tr_losses, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
+    axes[0, 0].plot(np.arange(len(val_losses)), val_losses, lw = 1, label = "VALID, FOLD {}".format(foldn))
+    axes[0, 1].plot(np.arange(len(tr_accuracies)), tr_accuracies, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
+    axes[0, 1].plot(np.arange(len(val_accuracies)), val_accuracies, lw = 1, label = "VALID, FOLD {}".format(foldn))
 
 
     axes[1, 0].plot(np.arange(len(tr_auc)), tr_auc, lw=1, label="TRAIN, FOLD {}".format(foldn))
     axes[1, 0].plot(np.arange(len(val_auc)), val_auc, lw=1, label="VALID, FOLD {}".format(foldn))
     # annotate last tr_l, _tr_acc, tr_auc, tr_proc_time
     # annotate/scatter tst_l, tst_acc, tst_auc
-    axes[0,0].legend()
-    axes[0,1].legend()
+    axes[0, 0].legend()
+    axes[0, 1].legend()
 
     # xlabel = gradient steps
     axes[0,0].set_xlabel('epochs')
@@ -232,7 +233,7 @@ for foldn in range(1 , args.XVAL + 1):
     # Placeholder for AUC
     axes[1,0].legend()
     axes[1,0].set_xlabel('epochs')
-    axes[1,0].set_ylabel('AUC')
+    axes[1,0].set_ylabel('AUC on Test')
 
     print("--------FOLD {}".format(foldn))
 
