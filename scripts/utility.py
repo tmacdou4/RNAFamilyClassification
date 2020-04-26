@@ -294,7 +294,7 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
                 seeds.append(seqs)
 
         # markov chain random generator order 1 + zero padding (  within target family only ! ) 
-        elif method == 'FMLM1' and RF == target:
+        elif method == 'DINUCSHFL' and RF == target:
 
                 fixed_seqs = pad_to_fixed_length(seqs_index, max_length= max_len)
 
@@ -303,7 +303,7 @@ def load_data_in_df(target, RFs, method, datapath = "../data" ,max_len = 500):
 
                 seeds = np.concatenate([seqs,["RAND" for _ in range(len(rand_fixed_seqs))]])
                 data = np.concatenate([fixed_seqs,rand_fixed_seqs])
-                labels = np.concatenate([[RF for i in range(len(fixed_seqs))], ['RANDOM_FMLM1' for i in range(len(fixed_seqs)) ]])
+                labels = np.concatenate([[RF for i in range(len(fixed_seqs))], ['RANDOM_DINUCSHFL' for _ in range(len(fixed_seqs)) ]])
                 return pd.DataFrame(data), pd.DataFrame({'RFAM': labels, 'seed': seeds})
     
     seeds = np.concatenate(seeds)

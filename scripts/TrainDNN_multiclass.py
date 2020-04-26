@@ -34,7 +34,7 @@ parser.add_argument('-wd', dest = 'WEIGHT_DECAY', type = float, default = 0, hel
 parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'number of folds for crossvalidation')
 parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'random seed')
 parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help = 'device ex cuda:0')
-parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, FMLM1]')
+parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, DINUCSHFL]')
 parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, help = 'RFAM identifier to predict from seed')
 parser.add_argument('-classification', dest = 'CLSFID', default='BIN', type = str, help ='BIN for binary classification, MUL for multiclass classification')
 
@@ -88,12 +88,10 @@ train_size = nseeds - test_size
 gr_steps = int(float(train_size) / bs) + 1
 
 # prepare_outfile_paths
-SETS_path = os.path.join(modelname, 'SETS')
 MODELSPECS_path = os.path.join(modelname, 'MODELSPECS')
 MODELS_path = os.path.join(modelname, 'MODELS')
 RES_path = os.path.join(modelname, 'OUT')
 TRPLOTS_path = os.path.join(modelname, 'TRPLOTS')
-assert_mkdir(SETS_path)
 assert_mkdir(MODELSPECS_path)
 assert_mkdir(MODELS_path)
 assert_mkdir(RES_path) 
@@ -101,9 +99,12 @@ assert_mkdir(TRPLOTS_path)
 
 
 # init fig, axes for plotting 
-fig, axes = plt.subplots(ncols = 2, nrows = 2, figsize = (10, 10))
+fig, axes = plt.subplots(ncols = 2, nrows = 2, figsize = (15, 10))
 
-total_conf_matrix = np.zeros(shape=(len(np.unique(labels['RFAM'])),len(np.unique(labels['RFAM']))))
+if clsfID == "BIN":
+    total_conf_matrix = np.zeros((2, 2))
+else:
+    total_conf_matrix = np.zeros(shape=(len(np.unique(labels['RFAM'])),len(np.unique(labels['RFAM']))))
 
 for foldn in range(1 , args.XVAL + 1):
     
@@ -194,66 +195,71 @@ for foldn in range(1 , args.XVAL + 1):
     val_losses = model_specs['val_l']
     val_accuracies = model_specs['val_acc']
     val_auc = model_specs['val_auc']
-    #total_conf_matrix += model_specs['conf_mat']
-    
-    acc_report = "FOLD NUMBER {} | FINAL TRAINING ACCURACY: {} | VALIDATION ACCURACY: {}".format(foldn, round(tr_accuracies[-1], 3), round(val_accuracies[-1], 3))
-    loss_report = "FOLD NUMBER {} | FINAL TRAINING LOSS: {} | VALIDATION LOSS: {}".format(foldn, round(tr_losses[-1], 3), round(val_losses[-1], 3))
+    total_conf_matrix += model_specs['val_conf_mat']
+
+    print("--------FOLD {}".format(foldn))
+    acc_report = "FOLD NUMBER {} | FINAL TRAINING ACCURACY: {} | FINAL VALIDATION ACCURACY: {}".format(foldn, round(tr_accuracies[-1], 3), round(val_accuracies[-1], 3))
+    loss_report = "FOLD NUMBER {} | FINAL TRAINING LOSS: {} | FINAL VALIDATION LOSS: {}".format(foldn, round(tr_losses[-1], 3), round(val_losses[-1], 3))
+    auc_report = "FOLD NUMBER {} | FINAL TRAINING AUC: {} | FINAL VALIDATION LOSS: {}".format(foldn, round(tr_auc[-1], 3), round(val_auc[-1], 3))
     time_report =  "TRAINING/VALIDATION PROCESSING TIME:{}".format(model_specs['tr_proc_time'])
     print(acc_report)
     print(loss_report)
+    print(auc_report)
     print(time_report)
 
-    # report Training in outfile
-    pd.DataFrame({'tr_loss': tr_losses, 'tr_acc': tr_accuracies}).to_csv(os.path.join(RES_path, FOLD_NAME + ".tr_curves"))
-    pd.DataFrame({'val_loss': val_losses, 'val_acc': val_accuracies}).to_csv(os.path.join(RES_path, FOLD_NAME + ".val_curves"))
-    # save model_specs dict under the name FOLD_NAME.specs
+    # Save training curves in OUT
+    pd.DataFrame({'tr_loss': tr_losses, 'tr_acc': tr_accuracies, 'tr_auc': tr_auc}).to_csv(os.path.join(RES_path, FOLD_NAME + ".tr_curves"))
+    pd.DataFrame({'val_loss': val_losses, 'val_acc': val_accuracies, 'val_auc': val_auc}).to_csv(os.path.join(RES_path, FOLD_NAME + ".val_curves"))
+
+    # save model_specs dict under the name FOLD_NAME.specs in MODELSPECS
     with open(os.path.join(MODELSPECS_path, '{}.specs'.format(FOLD_NAME)), 'w') as o : o.write(str(model_specs)) # to be updated
     
     # PLOT RESULTS 
-    # plot | tr_l | tr_acc | tr_auc
+    # plot losses
     axes[0, 0].plot(np.arange(len(tr_losses)), tr_losses, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
     axes[0, 0].plot(np.arange(len(val_losses)), val_losses, lw = 1, label = "VALID, FOLD {}".format(foldn))
+    axes[0, 0].legend()
+    axes[0,0].set_xlabel('epoch')
+    axes[0,0].set_ylabel('NLLloss')
+
+    # plot accuracies
     axes[0, 1].plot(np.arange(len(tr_accuracies)), tr_accuracies, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
     axes[0, 1].plot(np.arange(len(val_accuracies)), val_accuracies, lw = 1, label = "VALID, FOLD {}".format(foldn))
+    axes[0, 1].legend()
+    axes[0, 1].set_xlabel('epoch')
+    axes[0, 1].set_ylabel('Accuracies')
 
-
+    # plot AUCS
     axes[1, 0].plot(np.arange(len(tr_auc)), tr_auc, lw=1, label="TRAIN, FOLD {}".format(foldn))
     axes[1, 0].plot(np.arange(len(val_auc)), val_auc, lw=1, label="VALID, FOLD {}".format(foldn))
-    # annotate last tr_l, _tr_acc, tr_auc, tr_proc_time
-    # annotate/scatter tst_l, tst_acc, tst_auc
-    axes[0, 0].legend()
-    axes[0, 1].legend()
-
-    # xlabel = gradient steps
-    axes[0,0].set_xlabel('epochs')
-    axes[0,0].set_ylabel('NLLloss')
-    axes[0,1].set_xlabel('epochs')
-    axes[0,1].set_ylabel('Accuracies')
-
-    # Placeholder for AUC
-    axes[1,0].legend()
-    axes[1,0].set_xlabel('epochs')
-    axes[1,0].set_ylabel('AUC on Test')
-
-    print("--------FOLD {}".format(foldn))
+    axes[1, 0].legend()
+    axes[1, 0].set_xlabel('epoch')
+    axes[1, 0].set_ylabel('AUC')
 
     # title the figure with the model's name
     fig.suptitle(MODELFULLNAME)
-    # make outpath 
-    outpath = os.path.join(TRPLOTS_path, MODELFULLNAME + '.png')
-    plt.savefig(outpath, dpi = 300)
 
-# plt.axes(axes[1,1])
-#
-#
-#
-# conf_df = pd.DataFrame(total_conf_matrix, RFs, RFs)
-# sn.set(font_scale=1)
-# sn.heatmap(conf_df, annot=True, annot_kws={"size": 16}, fmt='g')
-# plt.ylabel("True family")
-# plt.xlabel("Predicted Family")
-# outpath = os.path.join(TRPLOTS_path, REF + '_CONF_MAT.png')
-# plt.savefig(outpath, dpi=300)
+#Saving conf mat.
+with open(os.path.join(RES_path, MODELFULLNAME + "_CONF_MAT.npy"), 'wb') as f:
+    np.save(f, total_conf_matrix)
+
+#Adding Conf Mat to figure
+plt.sca(axes[1,1])
+if clsfID == "MUL":
+    conf_df = pd.DataFrame(total_conf_matrix, RFs, RFs)
+else:
+    conf_df = pd.DataFrame(total_conf_matrix, ["Rest", str(target)], ["Rest", str(target)])
+
+sn.set(font_scale=1)
+sn.heatmap(conf_df, annot=True, annot_kws={"size": 9}, fmt='g', cbar=False)
+plt.ylabel("True family")
+plt.xlabel("Predicted Family")
+
+#Save the whole plot in TRPLOTS
+outpath = os.path.join(TRPLOTS_path, MODELFULLNAME + '.png')
+plt.savefig(outpath, dpi = 300)
+
+
 #RES = pd.concat(frames)
 #AGG_AUC = metrics.roc_auc_score(y_true = RES.numeral , y_score = RES.yscore)
 #RES.to_csv(os.path.join(RES_path, MODELFULLNAME + "_AGG_AUC_{}.scores".format(round(AGG_AUC,4))))

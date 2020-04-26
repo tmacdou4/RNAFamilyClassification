@@ -13,10 +13,13 @@ def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
     else:
         model.eval()
 
+    #These metrics are calculated on train and test
     losses = []
     accuracies = []
-    aucs = []
-    conf_mats = []
+
+    #These values are recorded for the AUCs and confusion matrices.
+    all_y_scores = []
+    all_y_trues = []
 
     for x, y in dl:
         x = Variable(x).to(device)
@@ -31,33 +34,30 @@ def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
         a = float(acc.mean().detach().cpu().numpy())
 
         yscores = np.exp(out.detach().cpu().numpy())
-
-        #auc = metrics.roc_auc_score(y_true=y.detach().cpu().numpy(), y_score=yscores[:, 1])
-
-        #conf_mat = metrics.confusion_matrix(y.detach().cpu().numpy(), out.argmax(dim=-1).detach().cpu().numpy(),
-        #                                  labels=np.arange(out.size(-1), dtype=int))
-
-
-        #conf_mat = metrics.confusion_matrix(y.squeeze().long().detach().cpu().numpy(), torch.exp(out).argmax(dim=-1).detach().cpu().numpy(),
-        #                                   labels=np.arange(out.size(-1), dtype=int))
-
+        all_y_scores.append(yscores)
+        all_y_trues.append(y.detach().cpu().numpy())
 
         losses.append(float(loss))
         accuracies.append(a)
-        #aucs.append(auc)
-        #conf_mats.append(conf_mat)
 
         #update parameters only if training
         if mode=='TRAIN':
             loss.backward()
             optimizer.step()
 
+    all_y_scores = np.concatenate(all_y_scores)
+    all_y_trues = np.concatenate(all_y_trues)
+    all_y_trues_onehot = np.zeros((int(all_y_trues.shape[0]), int(all_y_trues[:,0].max()+1)))
+    all_y_trues_onehot[np.arange(int(all_y_trues.shape[0])), all_y_trues[:,0].astype("int32")] = 1
+
     loss_out = np.array(losses).mean()
     acc_out = np.array(accuracies).mean() * 100
-    auc_out = np.array(aucs).mean()
-    #conf_mat_out = np.array()
 
-    return loss_out, acc_out, auc_out
+    auc_out = metrics.roc_auc_score(y_true=all_y_trues_onehot, y_score=all_y_scores, multi_class='ovo')
+    conf_mat = metrics.confusion_matrix(all_y_trues, np.argmax(all_y_scores, axis=-1),
+                                        labels=np.arange(all_y_scores.shape[-1], dtype=int))
+
+    return loss_out, acc_out, auc_out, conf_mat
 
 
 def train (model, tr_dataloader, val_dataloader, model_specs, device = 'cuda:0', foldn = 0):
@@ -76,7 +76,7 @@ def train (model, tr_dataloader, val_dataloader, model_specs, device = 'cuda:0',
 
     for i in range(epochs):
 
-        tr_loss, tr_acc, tr_auc = run_epoch(model, tr_dataloader, loss_fn, optimizer, device, "TRAIN")
+        tr_loss, tr_acc, tr_auc, tr_conf_mat = run_epoch(model, tr_dataloader, loss_fn, optimizer, device, "TRAIN")
 
         training_loss.append(tr_loss)
         training_acc.append(tr_acc)
@@ -86,7 +86,7 @@ def train (model, tr_dataloader, val_dataloader, model_specs, device = 'cuda:0',
 
         print(training_reporter)
 
-        val_loss, val_acc, val_auc = run_epoch(model, val_dataloader, loss_fn, optimizer, device, "VALID")
+        val_loss, val_acc, val_auc, val_conf_mat = run_epoch(model, val_dataloader, loss_fn, optimizer, device, "VALID")
 
         validation_loss.append(val_loss)
         validation_acc.append(val_acc)
@@ -103,3 +103,5 @@ def train (model, tr_dataloader, val_dataloader, model_specs, device = 'cuda:0',
     model_specs['val_acc'] = np.array(validation_acc)
     model_specs['tr_auc'] = np.array(training_auc)
     model_specs['val_auc'] = np.array(validation_auc)
+    model_specs['tr_conf_mat'] = tr_conf_mat
+    model_specs['val_conf_mat'] = val_conf_mat

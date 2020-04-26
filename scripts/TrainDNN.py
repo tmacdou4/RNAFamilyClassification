@@ -32,7 +32,7 @@ parser.add_argument('-xval', dest = 'XVAL', default = 5, type = int, help= 'numb
 parser.add_argument('-seed', dest = 'SEED', default= 1, type = int, help = 'random seed')
 parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help = 'device ex cuda:0')
 parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, help = 'RFAM identifier to predict from seed')
-parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, FMLM1]')
+parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, DINUCSHFL]')
 
 args = parser.parse_args()
 
@@ -50,7 +50,7 @@ seq_len = 600 # how to get the optimal number efficiently ?
 
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
-# TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
+# TASKS = ['ZP','RP','NUCSHFLZP', 'DINUCSHFL']
 # update some variables
 target = args.TARGET
 rfID = args.TARGET

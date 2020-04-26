@@ -48,7 +48,7 @@ seq_len = 600 # how to get the optimal number efficiently ?
 
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))] 
-# TASKS = ['ZP','RP','NUCSHFLZP', 'FMLM1']
+# TASKS = ['ZP','RP','NUCSHFLZP', 'DINUCSHFL']
 # only ZP implemented so far
 TASKS = ['ZP']
 
