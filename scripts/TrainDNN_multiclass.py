@@ -40,12 +40,13 @@ parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, 
 parser.add_argument('-classification', dest = 'CLSFID', default='BIN', type = str, help ='BIN for binary classification, MUL for multiclass classification')
 parser.add_argument('-train_on_all', dest = 'ALLTRAIN', default=False, type = bool, help='Do a final training pass on the data, saving the results?')
 parser.add_argument('-experiment', dest = 'EXPNAME', default='DNN', type = str, help='The folder where all the outputs will be created')
+parser.add_argument('-datapath', dest = 'PATH', default='data', type = str, help = 'Directory of the data folder (holds each class in a directory within)')
 
 args = parser.parse_args()
 
 # some other global variables
 # paths
-datapath = 'data'
+datapath = args.PATH
 # static values 
 experiment_name = args.EXPNAME
 lr = 1e-4
