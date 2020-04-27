@@ -53,6 +53,7 @@ seq_len = 400 # how to get the optimal number efficiently ?
 
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))]
+RFs.sort()
 # update some variables
 modelID = 'WD{}_EP{}'.format(args.WEIGHT_DECAY, args.EPOCHS)
 clsfID = args.CLSFID
@@ -97,9 +98,8 @@ assert_mkdir(MODELS_path)
 assert_mkdir(RES_path) 
 assert_mkdir(TRPLOTS_path)
 
-
 # init fig, axes for plotting 
-fig, axes = plt.subplots(ncols = 2, nrows = 2, figsize = (15, 10))
+fig, axes = plt.subplots(ncols = 2, nrows = 2, figsize = (20, 11))
 
 if clsfID == "BIN":
     total_conf_matrix = np.zeros((2, 2))
@@ -169,7 +169,7 @@ for foldn in range(1 , args.XVAL + 1):
     tr_dataset = BalancedDataPicker({'data': np.array(TRAIN_X),'labels':np.array(TRAIN_Y.numeral)[np.newaxis].T })
     tr_dl = DataLoader(tr_dataset, batch_size = model_specs['batch_size'])
 
-    val_dataset = BalancedDataPicker({'data': np.array(TEST_X),'labels':np.array(TEST_Y.numeral)[np.newaxis].T })
+    val_dataset = ValidationDataPicker({'data': np.array(TEST_X),'labels':np.array(TEST_Y.numeral)[np.newaxis].T })
     val_dl = DataLoader(val_dataset, batch_size=model_specs['batch_size'])
     # init model
     model = DNN(model_specs).to(model_specs['device'])

@@ -121,6 +121,17 @@ class BalancedDataPicker(Dataset):
         def __len__(self):
             return self.size
 
+class ValidationDataPicker(Dataset):
+    def __init__(self, data):
+        self.data = data
+        self.size = self.data['data'].shape[0]
+
+    def __getitem__(self, idx):
+        return torch.FloatTensor(self.data['data'][idx]), torch.FloatTensor(np.array(self.data['labels'][idx]))
+
+    def __len__(self):
+        return self.size
+
 # assert mkdir 
 def assert_mkdir(path):
     """
