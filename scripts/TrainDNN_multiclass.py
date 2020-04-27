@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from train_multiclass import train
 from torch.autograd import Variable
 import seaborn as sn
+import pickle
 
 #
 # TrainDNNs.py
@@ -37,6 +38,8 @@ parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help =
 parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, DINUCSHFL]')
 parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, help = 'RFAM identifier to predict from seed')
 parser.add_argument('-classification', dest = 'CLSFID', default='BIN', type = str, help ='BIN for binary classification, MUL for multiclass classification')
+parser.add_argument('-train_on_all', dest = 'ALLTRAIN', default=False, type = bool, help='Do a final training pass on the data, saving the results?')
+parser.add_argument('-experiment', dest = 'EXPNAME', default='DNN', type = str, help='The folder where all the outputs will be created')
 
 args = parser.parse_args()
 
@@ -44,7 +47,7 @@ args = parser.parse_args()
 # paths
 datapath = 'data'
 # static values 
-modelname = 'DNN'
+experiment_name = args.EXPNAME
 lr = 1e-4
 drp = 0
 bs = 512
@@ -89,10 +92,10 @@ train_size = nseeds - test_size
 gr_steps = int(float(train_size) / bs) + 1
 
 # prepare_outfile_paths
-MODELSPECS_path = os.path.join(modelname, 'MODELSPECS')
-MODELS_path = os.path.join(modelname, 'MODELS')
-RES_path = os.path.join(modelname, 'OUT')
-TRPLOTS_path = os.path.join(modelname, 'TRPLOTS')
+MODELSPECS_path = os.path.join(experiment_name, 'MODELSPECS')
+MODELS_path = os.path.join(experiment_name, 'MODELS')
+RES_path = os.path.join(experiment_name, 'OUT')
+TRPLOTS_path = os.path.join(experiment_name, 'TRPLOTS')
 assert_mkdir(MODELSPECS_path)
 assert_mkdir(MODELS_path)
 assert_mkdir(RES_path) 
@@ -116,7 +119,7 @@ for foldn in range(1 , args.XVAL + 1):
         'test_size': test_size,                  
         'train_size' : train_size,
         'gr_steps': gr_steps,
-        'model_layout': modelname,
+        'model_layout': experiment_name,
         'ARCH': ARCH, # needs update bcs it's array
         'n_hid_lyrs': len(ARCH),
         'n_free_params': None,
@@ -212,8 +215,8 @@ for foldn in range(1 , args.XVAL + 1):
     pd.DataFrame({'val_loss': val_losses, 'val_acc': val_accuracies, 'val_auc': val_auc}).to_csv(os.path.join(RES_path, FOLD_NAME + ".val_curves"))
 
     # save model_specs dict under the name FOLD_NAME.specs in MODELSPECS
-    with open(os.path.join(MODELSPECS_path, '{}.specs'.format(FOLD_NAME)), 'w') as o : o.write(str(model_specs)) # to be updated
-    
+    with open(os.path.join(MODELSPECS_path, '{}.specs'.format(FOLD_NAME)), 'wb') as o : pickle.dump(model_specs, o)
+
     # PLOT RESULTS 
     # plot losses
     axes[0, 0].plot(np.arange(len(tr_losses)), tr_losses, lw = 1, label = "TRAIN, FOLD {}".format(foldn))
@@ -238,6 +241,24 @@ for foldn in range(1 , args.XVAL + 1):
 
     # title the figure with the model's name
     fig.suptitle(MODELFULLNAME)
+
+if args.ALLTRAIN:
+    tr_dataset = BalancedDataPicker({'data': np.array(data), 'labels': np.array(labels.numeral)[np.newaxis].T})
+    tr_dl = DataLoader(tr_dataset, batch_size=model_specs['batch_size'])
+
+    #validation set really doesn't matter for this training pass as it won't be plotted or anything, just need to
+    #have one or the train method won't work
+    val_dataset = ValidationDataPicker({'data': np.array(TEST_X), 'labels': np.array(TEST_Y.numeral)[np.newaxis].T})
+    val_dl = DataLoader(val_dataset, batch_size=model_specs['batch_size'])
+
+    model = DNN(model_specs).to(model_specs['device'])
+
+    train(model, tr_dl, val_dl, model_specs, device=model_specs['device'], foldn=0)
+
+    torch.save(model.state_dict(), os.path.join(MODELS_path, '{}.params'.format(MODELFULLNAME)))
+
+
+
 
 #Saving conf mat.
 with open(os.path.join(RES_path, MODELFULLNAME + "_CONF_MAT.npy"), 'wb') as f:
