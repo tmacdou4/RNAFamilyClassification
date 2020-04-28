@@ -29,7 +29,7 @@ def run_epoch (model, dl, loss_fn, optimizer, device, mode="TRAIN"):
 
         out = model(x).to(device)
 
-        loss = loss_fn(out, y.squeeze().long())
+        loss = loss_fn(out, y.squeeze(dim=1).long())
         acc = torch.eq(out.argmax(dim=-1), y.long().flatten()).float().view(-1, 1)
         a = float(acc.mean().detach().cpu().numpy())
 
