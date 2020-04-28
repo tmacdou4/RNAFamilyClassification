@@ -38,8 +38,8 @@ parser.add_argument('-d', dest = 'DEVICE', default= 'cuda:0', type = str, help =
 parser.add_argument('-task', dest = 'TASK', default= 'ZP', type = str, help ='type of dataset randomness / padding sequences [ZP, RP, NUCSHFLZP, NUCSHFLRP, DINUCSHFL]')
 parser.add_argument('-target', dest = 'TARGET', default= 'RF00005', type = str, help = 'RFAM identifier to predict from seed')
 parser.add_argument('-classification', dest = 'CLSFID', default='BIN', type = str, help ='BIN for binary classification, MUL for multiclass classification')
-parser.add_argument('-train_on_all', dest = 'ALLTRAIN', default=False, type = bool, help='Do a final training pass on the data, saving the results?')
-parser.add_argument('-experiment', dest = 'EXPNAME', default='DNN', type = str, help='The folder where all the outputs will be created')
+parser.add_argument('-train_on_all', dest = 'ALLTRAIN', default=False, type = bool, help='Do a final training pass on the data, saving the results')
+parser.add_argument('-experiment', dest = 'EXPNAME', default='DNN', type = str, help='Master folder where all the outputs will be saved')
 parser.add_argument('-datapath', dest = 'PATH', default='data', type = str, help = 'Directory of the data folder (holds each class in a directory within)')
 
 args = parser.parse_args()
@@ -53,7 +53,7 @@ lr = 1e-4
 drp = 0
 bs = 512
 loader = 'balanced'
-seq_len = 400 # how to get the optimal number efficiently ?
+seq_len = 400  # how to get the optimal number efficiently ?
 
 # Set RFs to include
 RFs =[path for path in os.listdir(datapath) if os.path.isdir(os.path.join(datapath,path))]
