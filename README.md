@@ -7,3 +7,17 @@ Command for full environment setup using conda:
 This is a repository of the code and data used in our ISMB 2020
 abstract submission and as our IFT6292 final project
 
+##### The scripts/ directory contains all scripts used in this project
+
+TrainDNN_multiclass.py in the main runnable script that, despite its name, 
+performs both binary and multiclass classification
+
+train_multiclass.py implements the training loop and training structure for the method
+
+utilities.py implements various data-loading and data-related functions
+
+##### The data/ directory contains the classification data, and the structure is very precise. 
+
+A data directory contains many sub-directories, one for each class, named according
+to what class it is. Each sub-directory contains a file called "fasta_unaligned.txt"
+which contains the sequences of that class
