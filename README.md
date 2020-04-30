@@ -16,8 +16,13 @@ train_multiclass.py implements the training loop and training structure for the 
 
 utilities.py implements various data-loading and data-related functions
 
+load_exp_data.py can re-generate figures from past experiments based on saved data
+
 ##### The data/ directory contains the classification data, and the structure is very precise. 
 
 A data directory contains many sub-directories, one for each class, named according
 to what class it is. Each sub-directory contains a file called "fasta_unaligned.txt"
 which contains the sequences of that class
+
+The 7405 sequences in 24 Rfam families that we used are found in the 
+data.zip archive in this repo
