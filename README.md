@@ -1,5 +1,7 @@
 # Elucidating the Automatically Detected Features Used By Deep Neural Networks for RFAM family classification
 ### Tom MacDougall, Léonard Sauvé, François Major, Sébastien Lemieux
+Work presented as a poster and talk at ISMB 2020
+
 Command for full environment setup using conda:
 
     conda create -y -n RNAClassification python=3.7 scipy pandas matplotlib seaborn scikit-learn pytorch torchvision cudatoolkit=10.1 -c pytorch
